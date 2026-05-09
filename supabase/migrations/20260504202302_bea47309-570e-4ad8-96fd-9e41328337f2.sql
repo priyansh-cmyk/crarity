@@ -1,0 +1,1 @@
+ALTER TABLE public.assessment_sessions DISABLE ROW LEVEL SECURITY;

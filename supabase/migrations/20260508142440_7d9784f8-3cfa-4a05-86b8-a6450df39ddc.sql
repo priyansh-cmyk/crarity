@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "anon_read_own_session" ON public.assessment_sessions;
