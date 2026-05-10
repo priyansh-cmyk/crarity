@@ -7,6 +7,7 @@ import { gamesForRole, roleLabel } from "@/lib/role-labels";
 import type { TelemetryShape } from "@/components/TelemetryPanel";
 import type { Telemetry } from "@/hooks/useAssessmentTelemetry";
 import { computeRisk, RISK_TIER_META } from "@/lib/anti-cheat";
+import { toast } from "sonner";
 
 type Session = {
   id: string;
@@ -18,6 +19,7 @@ type Session = {
   status: string;
   total_score: number;
   completed: boolean;
+  admin_approved: boolean;
   scores: Record<string, Record<string, unknown>>;
   telemetry: TelemetryShape | null;
   created_at: string;
@@ -29,6 +31,50 @@ type Session = {
   weekend_availability: boolean | null;
   start_timeline: string | null;
 };
+
+// Game 2 questions — mirrors AcademicCounselorGame2.tsx QUESTIONS array
+const GAME2_QUESTIONS = [
+  {
+    q: "The course includes how many live doubt-clearing sessions per month?",
+    options: ["4 sessions", "8 sessions", "12 sessions", "16 sessions"],
+    correct: 1,
+  },
+  {
+    q: "A parent asks if their 7th grade child who's weak in math can join this program - based on what you saw, what would you tell them?",
+    options: [
+      "Yes, the program covers Class 7",
+      "No, this program is only for Class 11-12",
+      "Yes, but they should start with the foundation batch first",
+      "No, the child needs to be in Class 10 minimum",
+    ],
+    correct: 1,
+  },
+  {
+    q: "If a student enrolls on January 15th, when does their first live class happen according to the schedule?",
+    options: [
+      "Same day (January 15th)",
+      "Next Monday",
+      "Within 3 days",
+      "After the batch start date mentioned in the brochure",
+    ],
+    correct: 3,
+  },
+  {
+    q: "The course costs ₹48,000 total and the parent wants to pay over 8 months with zero down payment - what's the monthly EMI amount they'll pay?",
+    options: ["₹5,000/month", "₹6,000/month", "₹7,000/month", "₹8,000/month"],
+    correct: 1,
+  },
+  {
+    q: "A parent enrolled 2 weeks ago but now wants to switch from the 6-month plan to the 12-month plan - based on the policy you saw, is this allowed and if yes, within how many days of enrollment?",
+    options: [
+      "Yes, within 7 days",
+      "Yes, within 15 days",
+      "Yes, anytime during the course",
+      "No, plan changes not allowed after enrollment",
+    ],
+    correct: 1,
+  },
+];
 
 const T = {
   green: "#C5E831",
@@ -83,6 +129,22 @@ export default function AdminCandidateDetail() {
     if (!err) setSession({ ...session, status });
   };
 
+  const sendToEmployer = async () => {
+    if (!session) return;
+    setSaving(true);
+    const { error: err } = await supabase
+      .from("assessment_sessions")
+      .update({ admin_approved: true })
+      .eq("id", session.id);
+    setSaving(false);
+    if (err) {
+      toast.error(`Failed: ${err.message}`);
+    } else {
+      setSession({ ...session, admin_approved: true });
+      toast.success(`${session.name ?? "Candidate"} approved — now visible to employers`);
+    }
+  };
+
   if (loading) return <AdminLayout><div style={{ color: T.dim, fontFamily: T.sans }}>Loading…</div></AdminLayout>;
   if (error || !session)
     return (
@@ -107,11 +169,17 @@ export default function AdminCandidateDetail() {
             <h1 style={{ fontSize: 32, fontWeight: 700, color: T.text, marginBottom: 8 }}>{session.name ?? "Unnamed candidate"}</h1>
             <div style={{ fontSize: 14, color: T.dim }}>{contactBits.join(" | ") || "—"}</div>
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <ActionPill label="Shortlist" variant="green" onClick={() => updateStatus("approved")} disabled={saving} />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            {session.admin_approved && (
+              <span style={{ fontSize: 13, color: "#16a34a", fontWeight: 600, fontFamily: T.sans }}>✓ Approved</span>
+            )}
             <ActionPill label="Reject" variant="outline" onClick={() => updateStatus("rejected")} disabled={saving} />
-            <ActionPill label="Send to Employer" variant="dark" onClick={() => {}} />
-            <ActionPill label="Download Report" variant="outline" onClick={() => {}} />
+            <ActionPill
+              label={session.admin_approved ? "Sent to Employers" : "Send to Employer"}
+              variant="dark"
+              onClick={sendToEmployer}
+              disabled={saving || session.admin_approved}
+            />
           </div>
         </div>
 
@@ -317,18 +385,52 @@ function SelectionDetail({ data }: { data: Record<string, unknown> }) {
 }
 
 function McqDetail({ data }: { data: Record<string, unknown> }) {
-  const answers = (data.answers as Array<{ question?: string; selected?: string; correct?: boolean }>) ?? [];
+  // Game 2 saves answers as number[] (selected option indices), e.g. [1, 0, 3, null, 1]
+  const rawAnswers = data.answers as Array<number | null> | null;
+  if (!rawAnswers || rawAnswers.length === 0) {
+    return <div style={{ fontSize: 14, color: T.dim }}>No answers recorded.</div>;
+  }
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {answers.length === 0 && <div style={{ fontSize: 14, color: T.dim }}>No answers recorded.</div>}
-      {answers.map((a, i) => (
-        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12, background: T.bg, borderRadius: 8, fontSize: 14 }}>
-          <div style={{ color: T.text }}>
-            <strong>Question {i + 1}:</strong> Selected "{a.selected ?? "—"}"
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {rawAnswers.map((selectedIdx, i) => {
+        const q = GAME2_QUESTIONS[i];
+        if (!q) return null;
+        const isCorrect = selectedIdx === q.correct;
+        const selectedText = selectedIdx !== null && selectedIdx !== undefined ? q.options[selectedIdx] : null;
+        return (
+          <div key={i} style={{ padding: 14, background: T.bg, borderRadius: 10 }}>
+            <div style={{ fontSize: 13, color: T.dim, marginBottom: 6 }}>Question {i + 1}</div>
+            <div style={{ fontSize: 14, color: T.text, fontWeight: 500, marginBottom: 10, lineHeight: 1.5 }}>{q.q}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {q.options.map((opt, idx) => {
+                const isSelected = idx === selectedIdx;
+                const isCorrectOpt = idx === q.correct;
+                let bg = "transparent";
+                let color = T.dim;
+                let borderColor = "transparent";
+                if (isSelected && isCorrect) { bg = "#f0fdf4"; color = "#16a34a"; borderColor = "#16a34a"; }
+                else if (isSelected && !isCorrect) { bg = "#fef2f2"; color = T.red; borderColor = T.red; }
+                else if (isCorrectOpt) { bg = "#f0fdf4"; color = "#16a34a"; borderColor = "#16a34a"; }
+                return (
+                  <div key={idx} style={{
+                    display: "flex", alignItems: "center", gap: 8, padding: "6px 10px",
+                    borderRadius: 6, border: `1px solid ${borderColor}`, background: bg,
+                    fontSize: 13, color,
+                  }}>
+                    {isSelected ? (isCorrect ? <Check size={14} color="#16a34a" /> : <XIcon size={14} color={T.red} />) : <span style={{ width: 14 }} />}
+                    {opt}
+                    {isSelected && !isCorrect && isCorrectOpt && <span style={{ marginLeft: "auto", fontSize: 11 }}>← correct</span>}
+                    {!isSelected && isCorrectOpt && <span style={{ marginLeft: "auto", fontSize: 11 }}>← correct</span>}
+                  </div>
+                );
+              })}
+            </div>
+            {selectedText === null && (
+              <div style={{ fontSize: 12, color: T.dim, marginTop: 8 }}>Not answered</div>
+            )}
           </div>
-          {a.correct ? <Check size={16} color="#16a34a" /> : <XIcon size={16} color={T.red} />}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
