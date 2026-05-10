@@ -159,6 +159,7 @@ export default function CandidateDetail() {
   } | null>(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
+  const [pipelineStatus, setPipelineStatus] = useState<string>("new");
 
   const fetchInterview = useCallback(async () => {
     if (!id) return;
@@ -176,6 +177,20 @@ export default function CandidateDetail() {
     if (user && id) fetchInterview();
   }, [user, id, fetchInterview]);
 
+  // Fetch this employer's pipeline entry for this candidate
+  useEffect(() => {
+    if (!user || !id) return;
+    (async () => {
+      const { data } = await supabase
+        .from("employer_candidate_pipeline")
+        .select("status")
+        .eq("employer_id", user.id)
+        .eq("session_id", id)
+        .maybeSingle();
+      if (data) setPipelineStatus((data as { status: string }).status);
+    })();
+  }, [user, id]);
+
   useEffect(() => {
     if (authLoading) return;
     if (!user || !id) {
@@ -185,7 +200,7 @@ export default function CandidateDetail() {
     }
     let cancelled = false;
     (async () => {
-      // Get session, then validate it belongs to one of this employer's roles
+      // Fetch session — accessible if admin_approved OR this employer imported it
       const { data: sess, error } = await supabase
         .from("assessment_sessions")
         .select("*")
@@ -199,29 +214,16 @@ export default function CandidateDetail() {
         return;
       }
 
-      if (!sess.role_id) {
+      // Must be admin-approved OR the employer imported this candidate
+      const approved = Boolean((sess as Record<string, unknown>).admin_approved);
+      const invitedBy = (sess as Record<string, unknown>).invited_by;
+      if (!approved && invitedBy !== user.id) {
         setNotFound(true);
         setLoading(false);
         return;
       }
 
-      const { data: role } = await supabase
-        .from("roles")
-        .select("id, role_type, user_id")
-        .eq("id", sess.role_id)
-        .maybeSingle();
-
-      if (cancelled) return;
-      if (!role || role.user_id !== user.id) {
-        setNotFound(true);
-        setLoading(false);
-        return;
-      }
-
-      setSession({
-        ...(sess as unknown as Session),
-        role_type: (role.role_type as string) ?? sess.role_type,
-      });
+      setSession(sess as unknown as Session);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -283,7 +285,7 @@ export default function CandidateDetail() {
           <div style={{ fontSize: 64, marginBottom: 12 }}>🔍</div>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: T.text, margin: "0 0 8px" }}>Candidate not found</h1>
           <p style={{ fontSize: 15, color: T.dim, marginBottom: 24 }}>
-            This assessment doesn't exist or isn't linked to one of your roles.
+            This assessment doesn't exist or hasn't been approved by admin yet.
           </p>
           <Link
             to="/candidates"
@@ -640,26 +642,29 @@ export default function CandidateDetail() {
         >
           <button
             onClick={async () => {
-              const next = session.pipeline_status === "shortlisted" ? "new" : "shortlisted";
+              if (!user) return;
+              const next = pipelineStatus === "shortlisted" ? "new" : "shortlisted";
               const { error } = await supabase
-                .from("assessment_sessions")
-                .update({ pipeline_status: next })
-                .eq("id", session.id);
+                .from("employer_candidate_pipeline")
+                .upsert(
+                  { employer_id: user.id, session_id: session.id, status: next, updated_at: new Date().toISOString() },
+                  { onConflict: "employer_id,session_id" }
+                );
               if (error) { toast.error(error.message); return; }
-              setSession({ ...session, pipeline_status: next });
+              setPipelineStatus(next);
               toast.success(next === "shortlisted" ? "Candidate shortlisted!" : "Removed from shortlist");
             }}
             style={{
-              background: session.pipeline_status === "shortlisted" ? "#E6F4D7" : T.white,
-              color: session.pipeline_status === "shortlisted" ? "#3d6b00" : T.text,
-              border: `1.5px solid ${session.pipeline_status === "shortlisted" ? "#C5E831" : T.border}`,
+              background: pipelineStatus === "shortlisted" ? "#E6F4D7" : T.white,
+              color: pipelineStatus === "shortlisted" ? "#3d6b00" : T.text,
+              border: `1.5px solid ${pipelineStatus === "shortlisted" ? "#C5E831" : T.border}`,
               padding: "10px 20px", borderRadius: 99, fontSize: 14,
               fontWeight: 500, cursor: "pointer", fontFamily: T.sans,
               display: "inline-flex", alignItems: "center", gap: 6,
             }}
           >
-            <Heart size={14} fill={session.pipeline_status === "shortlisted" ? "#3d6b00" : "none"} />
-            {session.pipeline_status === "shortlisted" ? "Shortlisted" : "Shortlist"}
+            <Heart size={14} fill={pipelineStatus === "shortlisted" ? "#3d6b00" : "none"} />
+            {pipelineStatus === "shortlisted" ? "Shortlisted" : "Shortlist"}
           </button>
           <button
             onClick={() => setScheduleOpen(true)}
@@ -683,7 +688,18 @@ export default function CandidateDetail() {
           </button>
           {interview && (
             <button
-              onClick={() => setCompleteOpen(true)}
+              onClick={async () => {
+                if (!user) return;
+                const { error } = await supabase
+                  .from("employer_candidate_pipeline")
+                  .upsert(
+                    { employer_id: user.id, session_id: session.id, status: "interview_sent", updated_at: new Date().toISOString() },
+                    { onConflict: "employer_id,session_id" }
+                  );
+                if (error) { toast.error(error.message); return; }
+                setPipelineStatus("interview_sent");
+                setCompleteOpen(true);
+              }}
               style={{
                 background: T.white, color: T.text, border: `1.5px solid ${T.text}`,
                 padding: "10px 20px", borderRadius: 99, fontSize: 14,
@@ -695,13 +711,16 @@ export default function CandidateDetail() {
           )}
           <button
             onClick={async () => {
-              const next = session.pipeline_status === "rejected" ? "new" : "rejected";
+              if (!user) return;
+              const next = pipelineStatus === "rejected" ? "new" : "rejected";
               const { error } = await supabase
-                .from("assessment_sessions")
-                .update({ pipeline_status: next })
-                .eq("id", session.id);
+                .from("employer_candidate_pipeline")
+                .upsert(
+                  { employer_id: user.id, session_id: session.id, status: next, updated_at: new Date().toISOString() },
+                  { onConflict: "employer_id,session_id" }
+                );
               if (error) { toast.error(error.message); return; }
-              setSession({ ...session, pipeline_status: next });
+              setPipelineStatus(next);
               toast.success(next === "rejected" ? "Marked as not interested" : "Status reset");
             }}
             style={{

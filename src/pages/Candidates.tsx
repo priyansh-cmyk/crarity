@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Briefcase, Eye, MapPin, Calendar as CalendarIcon, ArrowRight, Leaf, Upload } from "lucide-react";
+import { Briefcase, Eye, MapPin, Calendar as CalendarIcon, ArrowRight } from "lucide-react";
 import ImportCandidatesModal from "@/components/candidates/ImportCandidatesModal";
 import { formatDistanceToNow } from "date-fns";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -46,11 +46,10 @@ type SessionRow = {
   candidate_status: string;
 };
 
-type RoleOption = { id: string; label: string; role_type: string };
 
 type DateFilter = "7" | "30" | "all";
 type SourceFilter = "all" | "pool" | "imported";
-type StatusFilter = "all" | "shortlisted" | "interviewed" | "rejected" | "pending";
+type StatusFilter = "all" | "shortlisted" | "interview_sent" | "rejected" | "new";
 
 const initials = (name: string | null) => {
   if (!name) return "?";
@@ -82,7 +81,6 @@ export default function Candidates() {
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>(
     initialSource === "pool" || initialSource === "imported" ? initialSource : "all"
   );
-  const [roles, setRoles] = useState<RoleOption[]>([]);
   const [importOpen, setImportOpen] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -108,56 +106,32 @@ export default function Candidates() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      // 1. employer's roles
-      const { data: rolesData, error: rolesErr } = await supabase
-        .from("roles")
-        .select("id, role_type")
-        .eq("user_id", user.id);
 
-      if (rolesErr) {
-        if (!cancelled) {
-          setRows([]);
-          setLoading(false);
-        }
-        return;
-      }
-
-      const roleList: RoleOption[] = (rolesData ?? []).map((r) => ({
-        id: r.id as string,
-        label: roleLabel(r.role_type as string),
-        role_type: r.role_type as string,
-      }));
-      const roleIds = roleList.map((r) => r.id);
-
-      if (!cancelled) {
-        setRoles(roleList);
-      }
-
-      // 2. completed sessions for those roles + sessions this employer imported
-      let query = supabase
+      // 1. Fetch all admin-approved completed sessions (visible to all employers)
+      //    PLUS any sessions this employer imported (invited_by = user.id)
+      const { data: sessions, error: sessErr } = await supabase
         .from("assessment_sessions")
-        .select("id, name, email, city, total_score, updated_at, role_id, role_type, source, completed, pipeline_status, candidate_status")
-        .neq("candidate_status", "hired")
+        .select("id, name, email, city, total_score, updated_at, role_id, role_type, source, completed, candidate_status")
+        .or(`and(admin_approved.eq.true,completed.eq.true),invited_by.eq.${user.id}`)
         .order("updated_at", { ascending: false });
 
-      // OR-combine: (completed AND role in employer roles) OR invited_by = me
-      const orParts: string[] = [`invited_by.eq.${user.id}`];
-      if (roleIds.length > 0) {
-        orParts.push(`and(completed.eq.true,role_id.in.(${roleIds.join(",")}))`);
-      }
-      query = query.or(orParts.join(","));
-
-      const { data: sessions, error: sessErr } = await query;
-
-      if (sessErr) {
-        if (!cancelled) {
-          setRows([]);
-          setLoading(false);
-        }
+      if (sessErr || cancelled) {
+        if (!cancelled) { setRows([]); setLoading(false); }
         return;
       }
 
-      const roleTypeById = new Map(roleList.map((r) => [r.id, r.role_type]));
+      // 2. Fetch this employer's pipeline entries so we can show per-employer status
+      const { data: pipelineData } = await supabase
+        .from("employer_candidate_pipeline")
+        .select("session_id, status")
+        .eq("employer_id", user.id);
+
+      if (cancelled) return;
+
+      const pipelineMap = new Map<string, string>(
+        (pipelineData ?? []).map((p) => [p.session_id as string, p.status as string])
+      );
+
       const mapped: SessionRow[] = (sessions ?? []).map((s) => ({
         id: s.id as string,
         name: (s.name as string | null) ?? null,
@@ -166,10 +140,10 @@ export default function Candidates() {
         total_score: (s.total_score as number) ?? 0,
         updated_at: s.updated_at as string,
         role_id: (s.role_id as string | null) ?? null,
-        role_type: roleTypeById.get((s.role_id as string) ?? "") ?? (s.role_type as string) ?? "",
+        role_type: (s.role_type as string) ?? "",
         source: ((s.source as string) ?? "pool") as "pool" | "imported" | "demo",
         completed: Boolean(s.completed),
-        pipeline_status: (s.pipeline_status as string) ?? "new",
+        pipeline_status: pipelineMap.get(s.id as string) ?? "new",
         candidate_status: (s.candidate_status as string) ?? "looking",
       }));
 
@@ -179,9 +153,7 @@ export default function Candidates() {
       }
     })();
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [user, authLoading, refreshKey]);
 
   // Apply all filters EXCEPT source — used for source counts
@@ -198,10 +170,8 @@ export default function Candidates() {
         const t = new Date(r.updated_at).getTime();
         if (Number.isNaN(t) || now - t > cutoffMs) return false;
       }
-      if (statusFilter === "pending" && r.completed) return false;
-      if (statusFilter === "shortlisted" || statusFilter === "interviewed" || statusFilter === "rejected") {
-        return false;
-      }
+      // Pipeline status filter
+      if (statusFilter !== "all" && r.pipeline_status !== statusFilter) return false;
       return true;
     });
   }, [rows, dateFilter, statusFilter, showDemo]);
@@ -216,8 +186,6 @@ export default function Candidates() {
     if (sourceFilter === "all") return baseFiltered;
     return baseFiltered.filter((r) => r.source === sourceFilter);
   }, [baseFiltered, sourceFilter]);
-
-  const defaultRole = roles[0] ?? null;
 
   return (
     <DashboardLayout>
@@ -267,13 +235,7 @@ export default function Candidates() {
               {showDemo ? "Hide demo" : "Show demo"}
             </button>
           <button
-            onClick={() => {
-              if (!defaultRole) {
-                alert("Create a role first before importing candidates.");
-                return;
-              }
-              setImportOpen(true);
-            }}
+            onClick={() => setImportOpen(true)}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -337,10 +299,10 @@ export default function Candidates() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="new">New</SelectItem>
                   <SelectItem value="shortlisted">Shortlisted</SelectItem>
-                  <SelectItem value="interviewed">Interviewed</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="pending">Pending review</SelectItem>
+                  <SelectItem value="interview_sent">Interview Scheduled</SelectItem>
+                  <SelectItem value="rejected">Not Interested</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -397,7 +359,7 @@ export default function Candidates() {
             Loading candidates…
           </div>
         ) : filtered.length === 0 ? (
-          <EmptyState hasAny={rows.length > 0} hasRoles={roles.length > 0} onCreateRole={() => navigate("/roles/new")} />
+          <EmptyState hasAny={rows.length > 0} />
         ) : (
           <>
             {/* Desktop table */}
@@ -438,6 +400,7 @@ export default function Candidates() {
                 const statusConfig: Record<string, { label: string; bg: string; fg: string; border: string }> = {
                   new: { label: "New", bg: "#DBEAFE", fg: "#1d4ed8", border: "#93c5fd" },
                   shortlisted: { label: "Shortlisted", bg: "#E6F4D7", fg: "#3d6b00", border: "#C5E831" },
+                  interview_sent: { label: "Interview Scheduled", bg: "#FFF4CE", fg: "#7a5a00", border: "#F0D265" },
                   interview_requested: { label: "Interview Requested", bg: "#FFF4CE", fg: "#7a5a00", border: "#F0D265" },
                   rejected: { label: "Rejected", bg: "#f1f1ee", fg: "#6b6b6b", border: "#e8e3d8" },
                 };
@@ -635,27 +598,26 @@ export default function Candidates() {
         )}
       </div>
 
-      {user && defaultRole && (
+      {user && importOpen && (
         <ImportCandidatesModal
           open={importOpen}
           onClose={() => setImportOpen(false)}
           onImported={() => setRefreshKey((k) => k + 1)}
           userId={user.id}
-          defaultRoleId={defaultRole.id}
-          defaultRoleType={defaultRole.role_type}
+          defaultRoleId=""
+          defaultRoleType=""
         />
       )}
     </DashboardLayout>
   );
 }
 
-function EmptyState({ hasAny, hasRoles, onCreateRole }: { hasAny: boolean; hasRoles: boolean; onCreateRole: () => void }) {
-  const noRoles = !hasRoles && !hasAny;
+function EmptyState({ hasAny }: { hasAny: boolean }) {
   return (
     <div
       style={{
         background: T.white,
-        border: `1px solid ${T.border}`,
+        border: `1px solid T.border`,
         borderRadius: 16,
         padding: "80px 24px",
         textAlign: "center",
@@ -672,46 +634,13 @@ function EmptyState({ hasAny, hasRoles, onCreateRole }: { hasAny: boolean; hasRo
         <Briefcase size={64} color={T.dim} strokeWidth={1.4} />
       </div>
       <h2 style={{ fontSize: 32, fontWeight: 700, color: T.text, margin: 0, marginTop: 32, fontFamily: T.sans }}>
-        {noRoles ? "No roles yet" : hasAny ? "No matches" : "No candidates available yet"}
+        {hasAny ? "No matches" : "No candidates available yet"}
       </h2>
       <p style={{ fontSize: 16, color: T.dim, margin: 0, marginTop: 16, maxWidth: 520, marginInline: "auto", lineHeight: 1.6, fontFamily: T.sans }}>
-        {noRoles
-          ? "Create your first role to see candidates."
-          : hasAny
+        {hasAny
           ? "Try adjusting your filters to see more candidates."
-          : "Unfortunately, we don't have anyone matching your criteria right now. Give us 24 hours and we'll ping you once we have qualified candidates."}
+          : "We'll notify you as soon as admin-approved candidates are available."}
       </p>
-      <div style={{ marginTop: 32, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-        <button
-          onClick={onCreateRole}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 10,
-            background: T.text,
-            color: "#fff",
-            border: "none",
-            padding: "12px 12px 12px 24px",
-            borderRadius: 99,
-            fontSize: 15,
-            fontWeight: 500,
-            cursor: "pointer",
-            fontFamily: T.sans,
-          }}
-        >
-          {noRoles ? "Create your first role" : "Back to role details"}
-          <span
-            style={{
-              width: 28, height: 28, borderRadius: "50%",
-              background: T.green,
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-              color: T.text,
-            }}
-          >
-            <ArrowRight size={14} />
-          </span>
-        </button>
-      </div>
     </div>
   );
 }

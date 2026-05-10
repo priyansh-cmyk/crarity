@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
+import { toast } from "sonner";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { gamesForRole } from "@/lib/role-labels";
@@ -22,6 +23,7 @@ type Session = {
   telemetry: Telemetry | null;
   created_at: string;
   updated_at: string;
+  admin_approved: boolean;
 };
 
 const T = {
@@ -77,6 +79,7 @@ export default function AdminCandidates() {
   const [dateFilter, setDateFilter] = useState("all");
   const [scoreFilter, setScoreFilter] = useState("all");
   const [riskFilter, setRiskFilter] = useState("all");
+  const [approvalFilter, setApprovalFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -85,7 +88,7 @@ export default function AdminCandidates() {
     (async () => {
       const { data, error: err } = await supabase
         .from("assessment_sessions")
-        .select("id,name,email,phone,city,role_type,status,total_score,completed,current_step,scores,telemetry,created_at,updated_at")
+        .select("id,name,email,phone,city,role_type,status,total_score,completed,current_step,scores,telemetry,created_at,updated_at,admin_approved")
         .order("created_at", { ascending: false });
       if (cancelled) return;
       if (err) setError(err.message);
@@ -161,10 +164,17 @@ export default function AdminCandidates() {
     if (riskFilter !== "all") {
       out = out.filter((r) => riskFor(r).tier === (riskFilter as RiskTier));
     }
+    if (approvalFilter !== "all") {
+      out = out.filter((r) => {
+        if (approvalFilter === "approved") return r.admin_approved;
+        if (approvalFilter === "pending") return !r.admin_approved;
+        return true;
+      });
+    }
     return out;
-  }, [rows, search, statusFilter, cityFilter, dateFilter, scoreFilter, riskFilter, ipCounts]);
+  }, [rows, search, statusFilter, cityFilter, dateFilter, scoreFilter, riskFilter, approvalFilter, ipCounts]);
 
-  useEffect(() => { setPage(1); setSelected(new Set()); }, [search, statusFilter, cityFilter, dateFilter, scoreFilter, riskFilter]);
+  useEffect(() => { setPage(1); setSelected(new Set()); }, [search, statusFilter, cityFilter, dateFilter, scoreFilter, riskFilter, approvalFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -240,6 +250,11 @@ export default function AdminCandidates() {
             <option value="medium">Medium Risk</option>
             <option value="low">Low Risk</option>
           </select>
+          <select value={approvalFilter} onChange={(e) => setApprovalFilter(e.target.value)} style={pill}>
+            <option value="all">Approval: All</option>
+            <option value="approved">Approved</option>
+            <option value="pending">Pending Approval</option>
+          </select>
         </div>
 
         {/* Table */}
@@ -256,14 +271,14 @@ export default function AdminCandidates() {
                     <th style={th}>
                       <input type="checkbox" checked={allSelected} onChange={toggleAll} />
                     </th>
-                    {["Name", "Email", "Phone", "City", "Score", "Risk", "Status", "Submitted", "Actions"].map((h) => (
+                    {["Name", "Email", "Phone", "City", "Score", "Risk", "Status", "Submitted", "Approval", "Actions"].map((h) => (
                       <th key={h} style={th}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {pageRows.length === 0 && (
-                    <tr><td colSpan={10} style={{ padding: 24, textAlign: "center", color: T.dim, fontSize: 14 }}>No candidates match.</td></tr>
+                    <tr><td colSpan={11} style={{ padding: 24, textAlign: "center", color: T.dim, fontSize: 14 }}>No candidates match.</td></tr>
                   )}
                   {pageRows.map((r) => {
                     const max = maxFor(r.role_type);
@@ -308,6 +323,28 @@ export default function AdminCandidates() {
                         </td>
                         <td style={{ ...td, color: T.dim, fontSize: 12 }}>{timeAgo(r.created_at)}</td>
                         <td style={td} onClick={(e) => e.stopPropagation()}>
+                          {r.admin_approved ? (
+                            <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: 99, background: "#E6F4D7", color: "#3d6b00", fontSize: 12, fontWeight: 600, border: "1px solid #C5E831" }}>
+                              ✓ Approved
+                            </span>
+                          ) : (
+                            <button
+                              onClick={async () => {
+                                const { error } = await supabase
+                                  .from("assessment_sessions")
+                                  .update({ admin_approved: true })
+                                  .eq("id", r.id);
+                                if (error) { toast.error(error.message); return; }
+                                setRows((prev) => prev.map((row) => row.id === r.id ? { ...row, admin_approved: true } : row));
+                                toast.success(`${r.name ?? "Candidate"} approved for employers!`);
+                              }}
+                              style={{ display: "inline-block", padding: "4px 12px", borderRadius: 99, background: T.green, color: T.text, fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer" }}
+                            >
+                              Approve
+                            </button>
+                          )}
+                        </td>
+                        <td style={td} onClick={(e) => e.stopPropagation()}>
                           <Link to={`/admin/candidate/${r.id}`} style={{ display: "inline-block", padding: "6px 14px", borderRadius: 99, background: T.text, color: T.white, fontSize: 12, fontWeight: 500, textDecoration: "none" }}>
                             View
                           </Link>
@@ -335,9 +372,22 @@ export default function AdminCandidates() {
           <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: T.text, color: T.white, padding: "12px 20px", borderRadius: 99, display: "flex", alignItems: "center", gap: 16, fontFamily: T.sans, boxShadow: "0 8px 24px rgba(0,0,0,0.2)", zIndex: 30 }}>
             <span style={{ fontSize: 14, fontWeight: 500 }}>{selected.size} candidate{selected.size === 1 ? "" : "s"} selected</span>
             <span style={{ width: 1, height: 20, background: "#444" }} />
-            {["Shortlist", "Reject", "Send to Employer", "Download Reports"].map((b) => (
-              <button key={b} style={{ background: "transparent", border: "none", color: T.white, fontSize: 13, fontWeight: 500, cursor: "pointer", padding: "4px 8px" }}>{b}</button>
-            ))}
+            <button
+              onClick={async () => {
+                const ids = Array.from(selected);
+                const { error } = await supabase
+                  .from("assessment_sessions")
+                  .update({ admin_approved: true })
+                  .in("id", ids);
+                if (error) { toast.error(error.message); return; }
+                setRows((prev) => prev.map((r) => ids.includes(r.id) ? { ...r, admin_approved: true } : r));
+                toast.success(`${ids.length} candidate${ids.length === 1 ? "" : "s"} approved!`);
+                setSelected(new Set());
+              }}
+              style={{ background: T.green, border: "none", color: T.text, fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "6px 14px", borderRadius: 99 }}
+            >
+              ✓ Approve Selected
+            </button>
             <button onClick={() => setSelected(new Set())} style={{ background: "transparent", border: "none", color: T.dim, fontSize: 13, cursor: "pointer", marginLeft: 8 }}>Clear</button>
           </div>
         )}
