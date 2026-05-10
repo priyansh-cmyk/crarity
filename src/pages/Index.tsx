@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { fadeNavigate } from "@/lib/page-transition";
 import logoAllen from "@/assets/logo-allen.png";
 import logoAppseconnect from "@/assets/logo-appseconnect.png";
@@ -1670,6 +1670,7 @@ function FooterSection() {
             gap: isMobile ? 20 : 28,
             flexWrap: "wrap",
             justifyContent: "center",
+            alignItems: "center",
           }}
         >
           {["How it works", "Features", "FAQ", "Contact"].map((l) => (
@@ -1683,6 +1684,23 @@ function FooterSection() {
               {l}
             </a>
           ))}
+          <span style={{ color: T.dimmer, fontSize: 14 }}>|</span>
+          <Link
+            to="/privacy"
+            style={{ fontSize: 14, color: T.dimmer, textDecoration: "none", transition: "color 0.15s" }}
+            onMouseEnter={(e) => ((e.target as HTMLElement).style.color = T.text)}
+            onMouseLeave={(e) => ((e.target as HTMLElement).style.color = T.dimmer)}
+          >
+            Privacy Policy
+          </Link>
+          <Link
+            to="/terms"
+            style={{ fontSize: 14, color: T.dimmer, textDecoration: "none", transition: "color 0.15s" }}
+            onMouseEnter={(e) => ((e.target as HTMLElement).style.color = T.text)}
+            onMouseLeave={(e) => ((e.target as HTMLElement).style.color = T.dimmer)}
+          >
+            Terms of Service
+          </Link>
         </div>
       </div>
     </footer>
