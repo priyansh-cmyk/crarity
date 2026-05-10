@@ -49,6 +49,7 @@ export default function ScheduleInterviewModal({
   open,
   onClose,
   candidateName,
+  candidateEmail,
   sessionId,
   employerId,
   existing,
@@ -57,6 +58,7 @@ export default function ScheduleInterviewModal({
   open: boolean;
   onClose: () => void;
   candidateName: string;
+  candidateEmail: string;
   sessionId: string;
   employerId: string;
   existing?: {
@@ -123,11 +125,13 @@ export default function ScheduleInterviewModal({
       supabase.functions.invoke("notify-interview", {
         body: {
           session_id: sessionId,
+          candidate_email: candidateEmail,
+          candidate_name: candidateName,
           employer_id: employerId,
           scheduled_at: scheduled.toISOString(),
           duration_minutes: duration,
           interview_type: type,
-          google_meet_link: null, // meet link preserved from original interview row
+          google_meet_link: null,
           notes: notes || null,
           is_reschedule: true,
         },
@@ -153,6 +157,8 @@ export default function ScheduleInterviewModal({
         supabase.functions.invoke("notify-interview", {
           body: {
             session_id: sessionId,
+            candidate_email: candidateEmail,
+            candidate_name: candidateName,
             employer_id: employerId,
             scheduled_at: scheduled.toISOString(),
             duration_minutes: duration,

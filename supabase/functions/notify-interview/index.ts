@@ -13,6 +13,8 @@ Deno.serve(async (req) => {
   try {
     const {
       session_id,
+      candidate_email,
+      candidate_name,
       employer_id,
       scheduled_at,
       duration_minutes,
@@ -22,42 +24,59 @@ Deno.serve(async (req) => {
       is_reschedule = false,
     } = await req.json();
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    // Use email passed directly from client (avoids service-role DB lookup issues)
+    // Fall back to DB lookup if not provided (backwards compat)
+    let recipientEmail = candidate_email as string | undefined;
+    let candidateName = candidate_name as string | undefined;
+    let companyName = "A Company";
 
-    // Fetch candidate email + name
-    const { data: sess } = await supabase
-      .from("assessment_sessions")
-      .select("email, name")
-      .eq("id", session_id)
-      .maybeSingle();
+    if (!recipientEmail || !candidateName) {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: sess } = await supabase
+        .from("assessment_sessions")
+        .select("email, name")
+        .eq("id", session_id)
+        .maybeSingle();
+      recipientEmail = recipientEmail || (sess as { email?: string } | null)?.email;
+      candidateName = candidateName || (sess as { name?: string } | null)?.name || recipientEmail?.split("@")[0];
 
-    if (!sess?.email) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("company_name, full_name")
+        .eq("id", employer_id)
+        .maybeSingle();
+      companyName =
+        (profile as { company_name?: string; full_name?: string } | null)?.company_name ||
+        (profile as { company_name?: string; full_name?: string } | null)?.full_name ||
+        "A Company";
+    } else {
+      // Still fetch company name for the employer
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("company_name, full_name")
+        .eq("id", employer_id)
+        .maybeSingle();
+      companyName =
+        (profile as { company_name?: string; full_name?: string } | null)?.company_name ||
+        (profile as { company_name?: string; full_name?: string } | null)?.full_name ||
+        "A Company";
+    }
+
+    if (!recipientEmail) {
       return new Response(
-        JSON.stringify({ error: "No candidate email found for this session" }),
+        JSON.stringify({ error: "No candidate email found" }),
         { status: 400, headers: corsHeaders }
       );
     }
 
-    // Fetch employer company name
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("company_name, full_name")
-      .eq("id", employer_id)
-      .maybeSingle();
-
-    const companyName =
-      (profile as { company_name?: string; full_name?: string } | null)
-        ?.company_name ||
-      (profile as { company_name?: string; full_name?: string } | null)
-        ?.full_name ||
-      "A Company";
-
-    const candidateName =
-      (sess as { name?: string | null; email: string }).name ||
-      (sess as { email: string }).email.split("@")[0];
+    candidateName = candidateName || recipientEmail.split("@")[0];
 
     // Format date in IST
     const date = new Date(scheduled_at);
@@ -163,7 +182,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: "Crarity <notifications@crarity.com>",
-        to: [(sess as { email: string }).email],
+        to: [recipientEmail],
         subject,
         html,
       }),

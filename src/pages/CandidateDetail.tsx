@@ -740,6 +740,7 @@ export default function CandidateDetail() {
           open={scheduleOpen}
           onClose={() => setScheduleOpen(false)}
           candidateName={session.name || "Candidate"}
+          candidateEmail={session.email || ""}
           sessionId={session.id}
           employerId={user.id}
           existing={interview}
