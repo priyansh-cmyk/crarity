@@ -1,4 +1,4 @@
-// Transcribe an audio pitch via Lovable AI Gateway (Gemini multimodal)
+// Transcribe an audio pitch via Google Gemini API (native multimodal)
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -17,9 +17,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -27,46 +27,36 @@ Deno.serve(async (req) => {
 
     const mt = typeof mime_type === "string" && mime_type ? mime_type : "audio/webm";
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You transcribe spoken audio verbatim. Return ONLY the spoken words as plain text, no commentary, no timestamps, no speaker labels. If the audio is unclear or silent, return an empty string.",
-          },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: "Transcribe the speech in this audio verbatim." },
-              {
-                type: "input_audio",
-                input_audio: { data: audio_base64, format: mt.includes("webm") ? "webm" : mt.includes("mp4") ? "mp4" : mt.includes("wav") ? "wav" : "webm" },
-              },
-            ],
-          },
-        ],
-      }),
-    });
+    // Use Gemini native API — supports inline audio via inline_data
+    const aiResp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: "Transcribe the speech in this audio verbatim. Return ONLY the spoken words as plain text — no commentary, no timestamps, no speaker labels. If the audio is unclear or silent, return an empty string.",
+                },
+                {
+                  inline_data: { mime_type: mt, data: audio_base64 },
+                },
+              ],
+            },
+          ],
+          generationConfig: { temperature: 0 },
+        }),
+      }
+    );
 
     if (!aiResp.ok) {
       const t = await aiResp.text();
-      console.error("Transcription gateway error:", aiResp.status, t);
+      console.error("Gemini transcription error:", aiResp.status, t);
       if (aiResp.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded, try again shortly." }), {
           status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -78,7 +68,7 @@ Deno.serve(async (req) => {
 
     const data = await aiResp.json();
     const transcript: string =
-      data.choices?.[0]?.message?.content?.toString().trim() ?? "";
+      data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
 
     return new Response(JSON.stringify({ transcript }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

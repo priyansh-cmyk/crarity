@@ -20,6 +20,16 @@ const GAMES = [
   { key: "game4", label: "Handle the Heat", max: 25 },
 ] as const;
 
+// Mirrors AcademicCounselorGame2.tsx QUESTIONS — used to decode numeric answer indices
+const GAME2_OPTIONS = [
+  ["4 sessions", "8 sessions", "12 sessions", "16 sessions"],
+  ["Yes, the program covers Class 7", "No, this program is only for Class 11-12", "Yes, but they should start with the foundation batch first", "No, the child needs to be in Class 10 minimum"],
+  ["Same day (January 15th)", "Next Monday", "Within 3 days", "After the batch start date mentioned in the brochure"],
+  ["₹5,000/month", "₹6,000/month", "₹7,000/month", "₹8,000/month"],
+  ["Yes, within 7 days", "Yes, within 15 days", "Yes, anytime during the course", "No, plan changes not allowed after enrollment"],
+];
+const GAME2_CORRECT = [1, 1, 3, 1, 1];
+
 type GameKey = typeof GAMES[number]["key"];
 
 type Session = {
@@ -48,7 +58,7 @@ const aiScore = (s: Session, key: GameKey): number => {
 };
 const aiReason = (s: Session, key: GameKey): string => {
   const g = s.scores?.[key];
-  return g?.ai_reasoning || g?.reasoning || defaultReason(s, key);
+  return g?.ai_reasoning || g?.reasoning || g?.feedback || defaultReason(s, key);
 };
 const defaultReason = (s: Session, key: GameKey): string => {
   const g = s.scores?.[key] || {};
@@ -390,16 +400,33 @@ function GameEvidence({ session, gameKey }: { session: Session; gameKey: GameKey
     ) : null;
   }
   if (gameKey === "game2") {
-    const answers: number[] = g.answers || [];
-    return answers.length ? (
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        {answers.map((a, i) => (
-          <span key={i} style={{ fontSize: 12, padding: "2px 8px", borderRadius: 6, background: "#fff", border: `1px solid ${T.border}` }}>
-            Q{i + 1}: {a}
-          </span>
-        ))}
+    const answers: (number | null)[] = g.answers || [];
+    if (!answers.length) return null;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {answers.map((a, i) => {
+          const opts = GAME2_OPTIONS[i] ?? [];
+          const correct = GAME2_CORRECT[i];
+          const isCorrect = a === correct;
+          const selectedText = a !== null && a !== undefined ? opts[a] : "—";
+          return (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+              <span style={{
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                width: 18, height: 18, borderRadius: "50%",
+                background: a === null ? "#e5e5e5" : isCorrect ? "#dcfce7" : "#fee2e2",
+                color: a === null ? T.dim : isCorrect ? "#166534" : "#991b1b",
+                fontWeight: 700, flexShrink: 0,
+              }}>
+                {a === null ? "—" : isCorrect ? "✓" : "✗"}
+              </span>
+              <span style={{ color: T.dim }}>Q{i + 1}:</span>
+              <span style={{ color: T.text }}>{selectedText}</span>
+            </div>
+          );
+        })}
       </div>
-    ) : null;
+    );
   }
   if (gameKey === "game3") {
     return (

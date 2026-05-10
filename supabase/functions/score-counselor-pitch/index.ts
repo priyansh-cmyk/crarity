@@ -1,4 +1,4 @@
-// Score Academic Counselor Game 3 (parent call pitch) via Lovable AI gateway tool calling
+// Score Academic Counselor Game 3 (parent call pitch) via Google Gemini API tool calling
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -65,22 +65,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResp = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${GEMINI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "gemini-2.0-flash",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: `Candidate's transcript:\n\n"""${transcript.trim()}"""` },
@@ -126,12 +126,6 @@ Deno.serve(async (req) => {
       if (aiResp.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded, try again shortly." }), {
           status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
