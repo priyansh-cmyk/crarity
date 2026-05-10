@@ -303,7 +303,6 @@ const Onboarding = () => {
         .eq("role_type", selectedRole);
       if (cancelled) return;
       if (error) {
-        toast("Using demo data", { description: "Could not load live candidates" });
         setCandidates(DEMO_CANDIDATES);
         return;
       }
@@ -326,7 +325,6 @@ const Onboarding = () => {
         ? rows.filter((r) => r.location.toLowerCase().includes(selLoc.toLowerCase()))
         : rows;
       if (filtered.length === 0) {
-        toast("Using demo data", { description: "No live candidates yet for these criteria" });
         setCandidates(DEMO_CANDIDATES);
       } else {
         setCandidates(filtered.slice(0, 12));
