@@ -178,7 +178,7 @@ export default function AdminScores() {
           <ReviewModal
             session={active}
             onClose={() => setActive(null)}
-            onSaved={async () => { await load(); setActive(null); }}
+            onSaved={async () => { await load(); setTab("reviewed"); setActive(null); }}
           />
         )}
       </div>
