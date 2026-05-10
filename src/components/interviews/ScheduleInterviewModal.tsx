@@ -119,6 +119,19 @@ export default function ScheduleInterviewModal({
         return;
       }
       toast.success(`Interview rescheduled for ${formatScheduledAt(scheduled.toISOString())}`);
+      // Notify candidate of reschedule (best-effort — don't block UI)
+      supabase.functions.invoke("notify-interview", {
+        body: {
+          session_id: sessionId,
+          employer_id: employerId,
+          scheduled_at: scheduled.toISOString(),
+          duration_minutes: duration,
+          interview_type: type,
+          google_meet_link: null, // meet link preserved from original interview row
+          notes: notes || null,
+          is_reschedule: true,
+        },
+      }).catch(() => {/* silent — email failure shouldn't break the UI */});
     } else {
       const meet = generateMeetLink();
       const { error } = await supabase.from("interviews").insert({
@@ -136,6 +149,19 @@ export default function ScheduleInterviewModal({
           .from("assessment_sessions")
           .update({ status: "interview_scheduled" })
           .eq("id", sessionId);
+        // Email the candidate (best-effort)
+        supabase.functions.invoke("notify-interview", {
+          body: {
+            session_id: sessionId,
+            employer_id: employerId,
+            scheduled_at: scheduled.toISOString(),
+            duration_minutes: duration,
+            interview_type: type,
+            google_meet_link: meet,
+            notes: notes || null,
+            is_reschedule: false,
+          },
+        }).catch(() => {/* silent */});
       }
       setSubmitting(false);
       if (error) {

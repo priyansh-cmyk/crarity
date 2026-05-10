@@ -442,7 +442,7 @@ export default function CandidateDashboard() {
               No interview invitations yet
             </div>
             <div style={{ fontSize: 14, color: T.dim }}>
-              Companies will reach out when they're interested!
+              We'll ping you as soon as an employer sends an interview request.
             </div>
           </div>
         ) : (
