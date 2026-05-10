@@ -30,13 +30,15 @@ export async function adminLogout() {
 }
 
 export async function checkIsAdmin(userId: string): Promise<boolean> {
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("role", "admin")
-    .maybeSingle();
-  if (error) return false;
+  // Use the security-definer RPC to bypass RLS on user_roles
+  const { data, error } = await supabase.rpc("has_role", {
+    _user_id: userId,
+    _role: "admin",
+  });
+  if (error) {
+    console.error("checkIsAdmin error:", error);
+    return false;
+  }
   return !!data;
 }
 
