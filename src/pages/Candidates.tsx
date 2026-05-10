@@ -82,7 +82,6 @@ export default function Candidates() {
     initialSource === "pool" || initialSource === "imported" ? initialSource : "all"
   );
   const [importOpen, setImportOpen] = useState(false);
-  const [showDemo, setShowDemo] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Sync source filter to URL
@@ -164,8 +163,8 @@ export default function Candidates() {
       dateFilter === "30" ? 30 * 24 * 60 * 60 * 1000 :
       Infinity;
     return rows.filter((r) => {
-      // Hide demo candidates unless toggle is on
-      if (r.source === "demo" && !showDemo) return false;
+      // Never show demo candidates to employers
+      if (r.source === "demo") return false;
       if (cutoffMs !== Infinity) {
         const t = new Date(r.updated_at).getTime();
         if (Number.isNaN(t) || now - t > cutoffMs) return false;
@@ -174,7 +173,7 @@ export default function Candidates() {
       if (statusFilter !== "all" && r.pipeline_status !== statusFilter) return false;
       return true;
     });
-  }, [rows, dateFilter, statusFilter, showDemo]);
+  }, [rows, dateFilter, statusFilter]);
 
   const sourceCounts = useMemo(() => ({
     all: baseFiltered.length,
@@ -218,22 +217,6 @@ export default function Candidates() {
             </p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <button
-              onClick={() => setShowDemo(!showDemo)}
-              style={{
-                padding: "8px 16px",
-                borderRadius: 99,
-                border: `1px solid ${showDemo ? T.green : T.border}`,
-                background: showDemo ? "#f0ffc8" : T.white,
-                fontSize: 13,
-                fontWeight: 500,
-                cursor: "pointer",
-                fontFamily: T.sans,
-                color: T.text,
-              }}
-            >
-              {showDemo ? "Hide demo" : "Show demo"}
-            </button>
           <button
             onClick={() => setImportOpen(true)}
             style={{
