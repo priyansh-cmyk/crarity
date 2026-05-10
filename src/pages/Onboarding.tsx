@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { useFadeNavigate } from "@/hooks/useFadeNavigate";
 import { ArrowLeft, ArrowRight, Check, Upload, X, MapPin, IndianRupee, FileText, School, GraduationCap, FlaskConical, Laptop } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -99,7 +100,7 @@ const signupSchema = z.object({
 
 /* ============================== Component ============================== */
 const Onboarding = () => {
-  const navigate = useNavigate();
+  const { fadeNavigate } = useFadeNavigate();
   const { signUp, signInWithGoogle } = useAuth();
 
   // Page-level enter animation (fade + subtle upward slide) to match landing→onboarding transition
@@ -413,7 +414,7 @@ const Onboarding = () => {
     toast.success("Welcome to Crarity! 🎉");
     setModalIn(false);
     window.setTimeout(
-      () => navigate("/candidates", { state: { fromSignup: true } }),
+      () => fadeNavigate("/candidates"),
       250,
     );
   };
