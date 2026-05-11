@@ -44,14 +44,18 @@ import AdminEmployers from "./pages/admin/AdminEmployers";
 import AdminEmployerDetail from "./pages/admin/AdminEmployerDetail";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminScores from "./pages/admin/AdminScores";
+import AdminHealth from "./pages/admin/AdminHealth";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import DebugPanel from "./components/DebugPanel";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import AssessmentTrack from "./pages/AssessmentTrack";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
 const App = () => (
+  <ErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -104,6 +108,8 @@ const App = () => (
             <Route path="/admin/settings" element={<AdminProtectedRoute><AdminSettings /></AdminProtectedRoute>} />
             <Route path="/admin/scores" element={<AdminProtectedRoute><AdminScores /></AdminProtectedRoute>} />
             <Route path="/admin/scoring-queue" element={<AdminProtectedRoute><AdminScores /></AdminProtectedRoute>} />
+            <Route path="/admin/health" element={<AdminProtectedRoute><AdminHealth /></AdminProtectedRoute>} />
+            <Route path="/assessment/track/:sessionId" element={<AssessmentTrack />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
@@ -114,6 +120,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

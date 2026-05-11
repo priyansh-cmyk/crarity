@@ -76,7 +76,30 @@ export default function AcademicCounselorStart() {
   const [onRelocationStep, setOnRelocationStep] = useState(false);
   const [willingToRelocate, setWillingToRelocate] = useState<boolean | null>(null);
   const [relocationTimeline, setRelocationTimeline] = useState<RelocationTimeline | null>(null);
+  const [resumeSession, setResumeSession] = useState<{ id: string; current_step: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Step URL map for resume navigation
+  const STEP_URLS: Record<string, string> = {
+    "game-1": "/assessment/academic-counselor/game-1",
+    "game-2": "/assessment/academic-counselor/game-2",
+    "game-3": "/assessment/academic-counselor/game-3",
+    "game-4": "/assessment/academic-counselor/game-4",
+    "filter-1": "/assessment/academic-counselor/filter-1",
+    "filter-2": "/assessment/academic-counselor/filter-2",
+    "filter-3": "/assessment/academic-counselor/filter-3",
+    "results": "/assessment/academic-counselor/results",
+  };
+  const STEP_LABELS: Record<string, string> = {
+    "game-1": "Game 1 – Pick Your Shot",
+    "game-2": "Game 2 – Say It Like You Mean It",
+    "game-3": "Game 3 – Beyond The Student",
+    "game-4": "Game 4 – Handle the Heat",
+    "filter-1": "Questions – Part 1",
+    "filter-2": "Questions – Part 2",
+    "filter-3": "Questions – Part 3",
+    "results": "Results",
+  };
 
   const q = QUESTIONS[step];
   const value = data[q.key];
@@ -140,6 +163,22 @@ export default function AcademicCounselorStart() {
     if (!isValid) return;
 
     if (!isLastQuestion) {
+      // After the email step (step 2), check for an existing incomplete session
+      if (step === 2) {
+        const email = data.email.trim().toLowerCase();
+        const { data: existing } = await supabase
+          .from("assessment_sessions")
+          .select("id, current_step")
+          .eq("email", email)
+          .eq("completed", false)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (existing && existing.id && STEP_URLS[existing.current_step as string]) {
+          setResumeSession(existing as { id: string; current_step: string });
+          return; // Show resume modal instead of advancing
+        }
+      }
       setVisible(false);
       setTimeout(() => setStep((s) => s + 1), 200);
       return;
@@ -182,6 +221,69 @@ export default function AcademicCounselorStart() {
       goNext();
     }
   };
+
+  // Resume modal
+  if (resumeSession) {
+    const stepLabel = STEP_LABELS[resumeSession.current_step] ?? resumeSession.current_step;
+    const resumeUrl = STEP_URLS[resumeSession.current_step];
+    const roleQs = roleId ? `&role_id=${roleId}` : "";
+    return (
+      <div style={{
+        minHeight: "100vh", background: "#f7f6f3", display: "flex", alignItems: "center",
+        justifyContent: "center", fontFamily: T.sans, padding: 24,
+      }}>
+        <div style={{
+          background: "#fff", border: "1px solid #e5e5e5", borderRadius: 20,
+          padding: "48px 40px", maxWidth: 480, width: "100%",
+        }}>
+          <div style={{ fontSize: 28, marginBottom: 16 }}>👋</div>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: T.text, margin: "0 0 12px" }}>
+            Welcome back!
+          </h2>
+          <p style={{ fontSize: 15, color: T.dim, lineHeight: 1.6, margin: "0 0 32px" }}>
+            You have an incomplete assessment. Resume from where you left off?
+          </p>
+          <div style={{
+            background: "#f7f6f3", borderRadius: 12, padding: "16px 20px",
+            marginBottom: 28, display: "flex", alignItems: "center", gap: 12,
+          }}>
+            <div style={{ fontSize: 20 }}>📍</div>
+            <div>
+              <div style={{ fontSize: 12, color: T.dim, marginBottom: 2 }}>Last reached</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: T.text }}>{stepLabel}</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <button
+              onClick={() => fadeNavigate(`${resumeUrl}?session=${resumeSession.id}${roleQs}`)}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                background: T.text, color: "#fff", border: "none",
+                padding: "14px 20px", borderRadius: 99, fontSize: 15, fontWeight: 600,
+                cursor: "pointer", fontFamily: T.sans,
+              }}
+            >
+              Resume assessment
+              <span style={{
+                width: 32, height: 32, borderRadius: "50%", background: T.green,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>→</span>
+            </button>
+            <button
+              onClick={() => setResumeSession(null)}
+              style={{
+                background: "#fff", color: T.text, border: `1px solid #e5e5e5`,
+                padding: "14px 20px", borderRadius: 99, fontSize: 15, fontWeight: 500,
+                cursor: "pointer", fontFamily: T.sans,
+              }}
+            >
+              Start fresh instead
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

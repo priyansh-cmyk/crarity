@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Users, Settings as SettingsIcon, LogOut, Menu, X, ClipboardCheck, LayoutDashboard, BarChart3, Building2 } from "lucide-react";
+import { Users, Settings as SettingsIcon, LogOut, Menu, X, ClipboardCheck, LayoutDashboard, BarChart3, Building2, Activity } from "lucide-react";
 import { adminLogout } from "@/lib/admin-auth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,6 +19,7 @@ const NAV = [
   { to: "/admin/scores", label: "Scoring Queue", icon: ClipboardCheck, badgeKey: "pendingReviews" as const },
   { to: "/admin/employers", label: "Employers", icon: Building2 },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/admin/health", label: "Health", icon: Activity },
   { to: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];
 

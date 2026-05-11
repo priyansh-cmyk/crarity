@@ -364,6 +364,23 @@ export default function AcademicCounselorResults() {
             </button>
           </div>
         )}
+
+        {/* Track application status */}
+        {sessionId && showText && (
+          <div style={{ marginTop: 24, ...fadeUp(showText, 12) }}>
+            <a
+              href={`/assessment/track/${sessionId}`}
+              style={{
+                fontSize: 13,
+                color: "#6b6b6b",
+                textDecoration: "underline",
+                cursor: "pointer",
+              }}
+            >
+              Track your application status →
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
