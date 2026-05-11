@@ -51,11 +51,13 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import AssessmentTrack from "./pages/AssessmentTrack";
 import ErrorBoundary from "./components/ErrorBoundary";
+import StagingBanner from "./components/StagingBanner";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <ErrorBoundary>
+  <StagingBanner />
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
