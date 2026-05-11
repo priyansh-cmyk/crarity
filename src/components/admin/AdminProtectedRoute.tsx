@@ -3,6 +3,11 @@ import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { checkIsAdmin } from "@/lib/admin-auth";
 
+const IS_STAGING =
+  import.meta.env.VITE_APP_ENV === "staging" ||
+  window.location.hostname.includes("staging") ||
+  window.location.hostname.includes("crarity-git-staging");
+
 type State = "checking" | "ok" | "denied";
 
 export default function AdminProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -33,6 +38,9 @@ export default function AdminProtectedRoute({ children }: { children: React.Reac
       sub.subscription.unsubscribe();
     };
   }, []);
+
+  // On staging let everything through so you can browse without signing in
+  if (IS_STAGING) return <>{children}</>;
 
   if (state === "checking") {
     return (

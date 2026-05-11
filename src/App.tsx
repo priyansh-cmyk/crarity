@@ -52,6 +52,7 @@ import Terms from "./pages/Terms";
 import AssessmentTrack from "./pages/AssessmentTrack";
 import ErrorBoundary from "./components/ErrorBoundary";
 import StagingBanner from "./components/StagingBanner";
+import StagingNav from "./components/StagingNav";
 
 const queryClient = new QueryClient();
 
@@ -118,6 +119,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           <DebugPanel />
+          <StagingNav />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

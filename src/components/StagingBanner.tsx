@@ -5,7 +5,11 @@
  * scoped to the "staging" branch only. Main/production will never see it.
  */
 
-const IS_STAGING = import.meta.env.VITE_APP_ENV === "staging";
+const IS_STAGING =
+  import.meta.env.VITE_APP_ENV === "staging" ||
+  (typeof window !== "undefined" &&
+    (window.location.hostname.includes("staging") ||
+      window.location.hostname.includes("crarity-git-staging")));
 
 export default function StagingBanner() {
   if (!IS_STAGING) return null;
