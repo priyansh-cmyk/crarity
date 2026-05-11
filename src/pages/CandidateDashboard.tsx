@@ -6,10 +6,10 @@ import {
   ChevronDown,
   Calendar as CalendarIcon,
   Clock,
-  Sparkles,
-  BookOpen,
-  MessageSquare,
-  TrendingUp,
+  ClipboardCheck,
+  Zap,
+  Eye,
+  Briefcase,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -80,7 +80,7 @@ const GAMES: { key: string; name: string }[] = [
 ];
 
 // Steps shown in the pipeline card
-type PipelineStep = { label: string; sublabel: string; state: "done" | "active" | "pending" };
+type PipelineStep = { label: string; sublabel: string; state: "done" | "active" | "pending"; icon: React.ElementType };
 
 function getPipeline(session: Session): PipelineStep[] {
   const aiDone = typeof session.total_score === "number" && session.total_score > 0;
@@ -92,43 +92,30 @@ function getPipeline(session: Session): PipelineStep[] {
     {
       label: "Submitted",
       sublabel: "Assessment received",
-      state: "done",
+      state: "done" as const,
+      icon: ClipboardCheck,
     },
     {
       label: "AI Scoring",
-      sublabel: aiDone ? "Complete" : "In progress…",
-      state: aiDone ? "done" : "active",
+      sublabel: aiDone ? "Complete" : "In progress",
+      state: (aiDone ? "done" : "active") as "done" | "active" | "pending",
+      icon: Zap,
     },
     {
-      label: "Crarity Review",
+      label: "Team Review",
       sublabel: approved ? "Approved" : reviewed ? "Complete" : "In queue",
-      state: approved ? "done" : reviewed ? "done" : aiDone ? "active" : "pending",
+      state: (approved ? "done" : reviewed ? "done" : aiDone ? "active" : "pending") as "done" | "active" | "pending",
+      icon: Eye,
     },
     {
       label: "Live to Employers",
-      sublabel: approved ? "Your profile is live!" : "Pending approval",
-      state: approved ? "active" : "pending",
+      sublabel: approved ? "Profile is live" : "Pending approval",
+      state: (approved ? "active" : "pending") as "done" | "active" | "pending",
+      icon: Briefcase,
     },
   ];
 }
 
-const PREP_TIPS = [
-  {
-    icon: BookOpen,
-    title: "Know your colleges",
-    body: "Be ready to speak confidently about entrance exams, cutoffs, and streams for at least 5–6 colleges. Employers expect this as baseline knowledge.",
-  },
-  {
-    icon: MessageSquare,
-    title: "Practice the objection",
-    body: "\"My child wants engineering but their marks are low.\" Prepare a calm, structured answer — most interviews will throw this at you.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Have a story ready",
-    body: "Think of one real (or practice) counseling situation you handled well. Interviewers love concrete examples over generic answers.",
-  },
-];
 
 export default function CandidateDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -437,31 +424,30 @@ export default function CandidateDashboard() {
           style={{
             background: T.white,
             border: `1px solid ${T.border}`,
-            borderRadius: 16,
-            padding: "24px 28px",
+            borderRadius: 20,
+            padding: "32px 36px",
             marginBottom: 32,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 36, flexWrap: "wrap", gap: 8 }}>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: T.text }}>Application Status</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: T.text, letterSpacing: "-0.01em" }}>Application Status</div>
               {activeStep && (
-                <div style={{ fontSize: 13, color: T.dim, marginTop: 2 }}>
-                  Current step: <strong style={{ color: T.text }}>{activeStep.label}</strong>
-                  {activeStep.label === "Crarity Review" && " — usually within 24–48 hours"}
-                  {activeStep.label === "AI Scoring" && " — usually takes 1–2 minutes"}
-                  {activeStep.label === "Live to Employers" && " — employers are browsing your profile"}
+                <div style={{ fontSize: 13, color: T.dim, marginTop: 4 }}>
+                  {activeStep.label === "Team Review" && "Your results are in the review queue — usually within 24–48 hours"}
+                  {activeStep.label === "AI Scoring" && "Your answers are being scored — usually takes 1–2 minutes"}
+                  {activeStep.label === "Live to Employers" && "Employers are browsing your profile right now"}
                 </div>
               )}
             </div>
             {session.admin_approved && (
-              <span style={{ background: T.green, color: T.text, fontWeight: 700, fontSize: 12, padding: "4px 12px", borderRadius: 99 }}>
+              <span style={{ background: T.green, color: T.text, fontWeight: 700, fontSize: 12, padding: "5px 14px", borderRadius: 99, letterSpacing: "0.01em" }}>
                 ✓ Approved
               </span>
             )}
           </div>
 
-          <div className="cr-pipeline">
+          <div className="cr-pipeline" style={{ gap: 0, alignItems: "flex-start" }}>
             {pipeline.map((step, i) => (
               <PipelineStep key={step.label} step={step} index={i} total={pipeline.length} />
             ))}
@@ -546,36 +532,6 @@ export default function CandidateDashboard() {
           </div>
         )}
 
-        {/* ── PREP TIPS (shown while waiting for interviews) ── */}
-        {interviews.filter(iv => iv.status !== "declined").length === 0 && (
-          <div style={{ marginTop: 36, marginBottom: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <Sparkles size={16} color={T.dim} />
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: T.text, margin: 0 }}>
-                Use this time to prepare
-              </h2>
-            </div>
-            <div className="cr-grid-2" style={{ gap: 12 }}>
-              {PREP_TIPS.map((tip) => {
-                const Icon = tip.icon;
-                return (
-                  <div
-                    key={tip.title}
-                    style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: "18px 20px", display: "flex", gap: 14 }}
-                  >
-                    <div style={{ width: 34, height: 34, borderRadius: 9, background: T.off, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <Icon size={16} color={T.dim} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: T.text, marginBottom: 4 }}>{tip.title}</div>
-                      <div style={{ fontSize: 13, color: T.dim, lineHeight: 1.55 }}>{tip.body}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* ── PERFORMANCE ── */}
         <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.01em", margin: "40px 0 16px" }}>
@@ -597,11 +553,6 @@ export default function CandidateDashboard() {
                 <div style={{ height: 4, background: "#f0efec", borderRadius: 99, overflow: "hidden" }}>
                   <div style={{ height: "100%", width: `${pct}%`, background: pct >= 70 ? T.green : pct >= 50 ? "#fbbf24" : "#f87171", borderRadius: 99, transition: "width 600ms ease" }} />
                 </div>
-                {data.feedback && (
-                  <div style={{ marginTop: 10, fontSize: 12, color: T.dim, lineHeight: 1.5, fontStyle: "italic" }}>
-                    "{data.feedback}"
-                  </div>
-                )}
               </div>
             );
           })}
@@ -615,42 +566,68 @@ export default function CandidateDashboard() {
 // ── SUB-COMPONENTS ──────────────────────────────────────────────────
 
 function PipelineStep({ step, index, total }: { step: PipelineStep; index: number; total: number }) {
-  const { state, label, sublabel } = step;
+  const { state, label, sublabel, icon: Icon } = step;
   const isLast = index === total - 1;
-
-  const iconBg = state === "done" ? T.text : state === "active" ? T.green : "#f0efec";
-  const iconColor = state === "done" ? "#fff" : T.text;
+  const isDone = state === "done";
+  const isActive = state === "active";
+  const isPending = state === "pending";
 
   return (
-    <div style={{ position: "relative", paddingBottom: 4 }}>
-      {/* Connector line */}
+    <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
+      {/* Connector line — sits behind the icon */}
       {!isLast && (
         <div style={{
           position: "absolute",
-          top: 14,
-          left: "calc(50% + 14px)",
-          right: "-50%",
-          height: 2,
-          background: state === "done" ? T.text : "#e8e3d8",
+          top: 24,
+          left: "calc(50% + 26px)",
+          right: "calc(-50% + 26px)",
+          height: 1.5,
+          background: isDone ? T.text : "#e8e3d8",
           zIndex: 0,
         }} />
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative", zIndex: 1 }}>
-        <div style={{
-          width: 28, height: 28, borderRadius: "50%",
-          background: iconBg,
-          border: state === "active" ? `2px solid ${T.text}` : "none",
-          display: "flex", alignItems: "center", justifyContent: "center",
+      {/* Icon circle */}
+      <div
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: "50%",
+          background: isDone ? T.text : isActive ? T.green : "#f4f3f0",
+          border: isActive ? `2px solid ${T.text}` : isDone ? "none" : `1.5px solid #e8e3d8`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           flexShrink: 0,
+          position: "relative",
+          zIndex: 1,
+          transition: "background 300ms",
+        }}
+      >
+        <Icon
+          size={20}
+          color={isDone ? "#fff" : isActive ? T.text : "#c0bdb6"}
+          strokeWidth={isDone ? 2 : 1.75}
+        />
+      </div>
+
+      {/* Labels */}
+      <div style={{ textAlign: "center", marginTop: 14, paddingLeft: 4, paddingRight: 4 }}>
+        <div style={{
+          fontSize: 13,
+          fontWeight: 700,
+          color: isPending ? "#c0bdb6" : T.text,
+          letterSpacing: "-0.01em",
+          marginBottom: 4,
         }}>
-          {state === "done" && <CheckCircle2 size={14} color={iconColor} />}
-          {state === "active" && <Clock size={13} color={T.text} />}
-          {state === "pending" && <Circle size={10} color="#bbb" />}
+          {label}
         </div>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: state === "pending" ? "#bbb" : T.text }}>{label}</div>
-          <div style={{ fontSize: 11, color: T.dim, marginTop: 2, lineHeight: 1.4 }}>{sublabel}</div>
+        <div style={{
+          fontSize: 12,
+          color: isPending ? "#d0cdc6" : T.dim,
+          lineHeight: 1.5,
+        }}>
+          {sublabel}
         </div>
       </div>
     </div>
@@ -708,19 +685,15 @@ function InterviewEmptyState({ approved }: { approved: boolean }) {
         </div>
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ fontSize: 17, fontWeight: 700, color: T.text, marginBottom: 6 }}>
-            Hang tight — your application is being reviewed
+            Your application is being reviewed
           </div>
           <div style={{ fontSize: 14, color: T.dim, lineHeight: 1.65, marginBottom: 16 }}>
-            The Crarity team is reviewing your results. Once approved, your profile goes live and employers can see and contact you. This usually takes 24–48 hours.
+            The team is reviewing your results. Once approved, your profile goes live and employers can see and contact you. This usually takes 24 to 48 hours.
           </div>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.dim }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fbbf24", display: "inline-block" }} />
               You'll get an email when your profile is approved
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.dim }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fbbf24", display: "inline-block" }} />
-              Use the time to prep — tips are below
             </div>
           </div>
         </div>

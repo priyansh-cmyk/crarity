@@ -29,10 +29,25 @@ type Session = {
   resume_url: string | null;
 };
 
+const IS_STAGING =
+  import.meta.env.VITE_APP_ENV === "staging" ||
+  window.location.hostname.includes("staging") ||
+  window.location.hostname.includes("crarity-git-staging");
+
+const STAGING_SESSION: Session = {
+  id: "staging-profile",
+  name: "Priya Sharma",
+  email: "priya@example.com",
+  phone: "+91 98765 43210",
+  city: "Mumbai",
+  languages: ["English", "Hindi"],
+  resume_url: null,
+};
+
 export default function CandidateProfile() {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(!IS_STAGING);
+  const [session, setSession] = useState<Session | null>(IS_STAGING ? STAGING_SESSION : null);
 
   // edit-mode state
   const [editPersonal, setEditPersonal] = useState(false);
@@ -54,7 +69,7 @@ export default function CandidateProfile() {
 
   // initial load
   useEffect(() => {
-    if (!user) return;
+    if (IS_STAGING || !user) return;
     let cancelled = false;
     (async () => {
       setLoading(true);
