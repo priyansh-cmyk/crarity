@@ -134,7 +134,11 @@ export default function CandidateDashboard() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const debugMode = searchParams.get("debug") === "true";
+  const IS_STAGING =
+    import.meta.env.VITE_APP_ENV === "staging" ||
+    window.location.hostname.includes("staging") ||
+    window.location.hostname.includes("crarity-git-staging");
+  const debugMode = searchParams.get("debug") === "true" || IS_STAGING;
   const debugStatus = searchParams.get("status") || "looking";
 
   const [session, setSession] = useState<Session | null>(null);
