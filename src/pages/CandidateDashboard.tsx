@@ -219,6 +219,34 @@ export default function CandidateDashboard() {
         setSession((s as unknown as Session) ?? null);
 
         if (s?.id) {
+          // Real-time: re-fetch session whenever admin_approved / total_score / scores changes
+          supabase
+            .channel(`session-status:${s.id}`)
+            .on(
+              "postgres_changes",
+              {
+                event: "UPDATE",
+                schema: "public",
+                table: "assessment_sessions",
+                filter: `id=eq.${s.id}`,
+              },
+              (payload) => {
+                if (cancelled) return;
+                setSession((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        total_score: (payload.new as any).total_score ?? prev.total_score,
+                        scores: (payload.new as any).scores ?? prev.scores,
+                        admin_approved: (payload.new as any).admin_approved ?? prev.admin_approved,
+                        candidate_status: (payload.new as any).candidate_status ?? prev.candidate_status,
+                      }
+                    : prev
+                );
+              }
+            )
+            .subscribe();
+
           const { data: ivs } = await supabase
             .from("interviews")
             .select("id, scheduled_at, status, google_meet_link, duration_minutes, interview_type, employer_id")

@@ -142,6 +142,14 @@ export default function AdminCandidateDetail() {
     } else {
       setSession({ ...session, admin_approved: true });
       toast.success(`${session.name ?? "Candidate"} approved — now visible to employers`);
+      // Notify candidate by email (best-effort — don't block UI)
+      supabase.functions.invoke("notify-approved", {
+        body: {
+          session_id: session.id,
+          candidate_email: session.email,
+          candidate_name: session.name,
+        },
+      }).catch(() => {});
     }
   };
 
