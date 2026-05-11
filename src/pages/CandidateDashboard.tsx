@@ -5,6 +5,11 @@ import {
   Circle,
   ChevronDown,
   Calendar as CalendarIcon,
+  Clock,
+  Sparkles,
+  BookOpen,
+  MessageSquare,
+  TrendingUp,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,6 +52,7 @@ type Session = {
   profile_completed: boolean;
   candidate_status: string;
   completed: boolean;
+  admin_approved: boolean;
 };
 
 type Interview = {
@@ -71,6 +77,57 @@ const GAMES: { key: string; name: string }[] = [
   { key: "game2", name: "Say It Like You Mean It" },
   { key: "game3", name: "Beyond The Student" },
   { key: "game4", name: "Handle the Heat" },
+];
+
+// Steps shown in the pipeline card
+type PipelineStep = { label: string; sublabel: string; state: "done" | "active" | "pending" };
+
+function getPipeline(session: Session): PipelineStep[] {
+  const aiDone = typeof session.total_score === "number" && session.total_score > 0;
+  const approved = session.admin_approved === true;
+  // review.status === "reviewed" means admin has scored but not necessarily approved
+  const reviewed = approved || (session.scores as any)?.review?.status === "reviewed";
+
+  return [
+    {
+      label: "Submitted",
+      sublabel: "Assessment received",
+      state: "done",
+    },
+    {
+      label: "AI Scoring",
+      sublabel: aiDone ? "Complete" : "In progress…",
+      state: aiDone ? "done" : "active",
+    },
+    {
+      label: "Crarity Review",
+      sublabel: approved ? "Approved" : reviewed ? "Complete" : "In queue",
+      state: approved ? "done" : reviewed ? "done" : aiDone ? "active" : "pending",
+    },
+    {
+      label: "Live to Employers",
+      sublabel: approved ? "Your profile is live!" : "Pending approval",
+      state: approved ? "active" : "pending",
+    },
+  ];
+}
+
+const PREP_TIPS = [
+  {
+    icon: BookOpen,
+    title: "Know your colleges",
+    body: "Be ready to speak confidently about entrance exams, cutoffs, and streams for at least 5–6 colleges. Employers expect this as baseline knowledge.",
+  },
+  {
+    icon: MessageSquare,
+    title: "Practice the objection",
+    body: "\"My child wants engineering but their marks are low.\" Prepare a calm, structured answer — most interviews will throw this at you.",
+  },
+  {
+    icon: TrendingUp,
+    title: "Have a story ready",
+    body: "Think of one real (or practice) counseling situation you handled well. Interviewers love concrete examples over generic answers.",
+  },
 ];
 
 export default function CandidateDashboard() {
@@ -111,19 +168,24 @@ export default function CandidateDashboard() {
         profile_completed: true,
         candidate_status: debugStatus,
         completed: true,
+        admin_approved: searchParams.get("approved") === "true",
       });
-      setInterviews([
-        {
-          id: "iv-1",
-          scheduled_at: new Date(Date.now() + 86400000 * 2).toISOString(),
-          status: "pending",
-          google_meet_link: null,
-          duration_minutes: 30,
-          interview_type: "Initial Screening",
-          employer_id: "debug-employer",
-          company_name: "Acme Education",
-        },
-      ]);
+      setInterviews(
+        searchParams.get("interviews") === "true"
+          ? [
+              {
+                id: "iv-1",
+                scheduled_at: new Date(Date.now() + 86400000 * 2).toISOString(),
+                status: "pending",
+                google_meet_link: null,
+                duration_minutes: 30,
+                interview_type: "Initial Screening",
+                employer_id: "debug-employer",
+                company_name: "Acme Education",
+              },
+            ]
+          : []
+      );
       setLoading(false);
       return;
     }
@@ -131,10 +193,7 @@ export default function CandidateDashboard() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-
-      // Try to claim any unlinked session by email match (best-effort)
       try {
-        // Find latest session for this user (already linked OR by email)
         const { data: linked } = await supabase
           .from("assessment_sessions")
           .select("id")
@@ -143,7 +202,6 @@ export default function CandidateDashboard() {
           .limit(1);
 
         if ((!linked || linked.length === 0) && user.email) {
-          // Find session by email and try linking each one we can see
           const { data: byEmail } = await supabase
             .from("assessment_sessions")
             .select("id")
@@ -159,7 +217,7 @@ export default function CandidateDashboard() {
         const { data: s } = await supabase
           .from("assessment_sessions")
           .select(
-            "id, name, email, total_score, scores, languages, resume_url, comfortable_with_office, profile_completed, candidate_status, completed"
+            "id, name, email, total_score, scores, languages, resume_url, comfortable_with_office, profile_completed, candidate_status, completed, admin_approved"
           )
           .eq("updated_by", user.id)
           .order("created_at", { ascending: false })
@@ -202,9 +260,7 @@ export default function CandidateDashboard() {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [user, debugMode, debugStatus]);
 
   const updateStatus = async (value: string) => {
@@ -284,9 +340,9 @@ export default function CandidateDashboard() {
   }
 
   const score = Math.round(session.total_score ?? 0);
-  const scoreTone = { bg: "#C5E831", fg: "#1a1a1a" };
-
+  const pipeline = getPipeline(session);
   const currentStatus = STATUS_OPTIONS.find((o) => o.value === session.candidate_status) ?? STATUS_OPTIONS[0];
+  const activeStep = pipeline.find((s) => s.state === "active");
 
   return (
     <CandidateLayout>
@@ -294,38 +350,41 @@ export default function CandidateDashboard() {
         .cr-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .cr-iv-row { display: grid; grid-template-columns: 2fr 2fr 1fr 1.5fr; gap: 16px; align-items: center; }
         .cr-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+        .cr-pipeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
         @media (max-width: 640px) {
           .cr-grid-2 { grid-template-columns: 1fr !important; }
           .cr-iv-row { grid-template-columns: 1fr !important; }
           .cr-iv-head { display: none !important; }
+          .cr-pipeline { grid-template-columns: 1fr 1fr !important; }
         }
       `}</style>
 
       <div style={{ maxWidth: 1100 }}>
-        {/* SECTION 1: Header + status */}
-        <div className="cr-header" style={{ marginBottom: 32 }}>
+
+        {/* ── HEADER ── */}
+        <div className="cr-header" style={{ marginBottom: 28 }}>
           <div>
             <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-0.02em", margin: 0 }}>
               {session.name || user?.email?.split("@")[0] || "Welcome"}
             </h1>
-            <div style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 12 }}>
+            <div style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 12 }}>
               <span
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 6,
-                  background: scoreTone.bg,
-                  color: scoreTone.fg,
+                  background: T.green,
+                  color: T.text,
                   borderRadius: 99,
-                  padding: "8px 16px",
+                  padding: "7px 16px",
                   fontWeight: 700,
-                  fontSize: 18,
+                  fontSize: 17,
                   letterSpacing: "-0.01em",
                 }}
               >
                 {score}/100
               </span>
-              <span style={{ fontSize: 14, color: T.dim }}>Overall score</span>
+              <span style={{ fontSize: 14, color: T.dim }}>Assessment score</span>
             </div>
           </div>
 
@@ -350,9 +409,7 @@ export default function CandidateDashboard() {
               >
                 <span
                   style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
+                    width: 8, height: 8, borderRadius: "50%",
                     background: currentStatus.tone === "green" ? T.green : "#aaaaaa",
                   }}
                 />
@@ -363,16 +420,7 @@ export default function CandidateDashboard() {
             <DropdownMenuContent align="end">
               {STATUS_OPTIONS.map((opt) => (
                 <DropdownMenuItem key={opt.value} onClick={() => updateStatus(opt.value)}>
-                  <span
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: opt.tone === "green" ? T.green : "#aaaaaa",
-                      marginRight: 8,
-                      display: "inline-block",
-                    }}
-                  />
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: opt.tone === "green" ? T.green : "#aaaaaa", marginRight: 8, display: "inline-block" }} />
                   {opt.label}
                 </DropdownMenuItem>
               ))}
@@ -380,140 +428,112 @@ export default function CandidateDashboard() {
           </DropdownMenu>
         </div>
 
-        {/* SECTION 2: Performance */}
-        <h2 style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.01em", margin: "0 0 32px" }}>Your Performance</h2>
-        <div className="cr-grid-2" style={{ marginBottom: 40 }}>
-          {GAMES.map((g) => {
-            const data = (session.scores ?? {})[g.key] ?? {};
-            const val =
-              g.key === "game1"
-                ? data.score ?? data.total_score ?? 0
-                : data.total_score ?? 0;
-            return (
-              <div
-                key={g.key}
-                style={{
-                  background: T.white,
-                  border: "1px solid #e5e5e5",
-                  borderRadius: 8,
-                  padding: 20,
-                  textAlign: "center",
-                }}
-              >
-                <div style={{ fontSize: 14, color: T.dim, fontWeight: 500, marginBottom: 8 }}>
-                  {g.name}
+        {/* ── PIPELINE STATUS CARD ── */}
+        <div
+          style={{
+            background: T.white,
+            border: `1px solid ${T.border}`,
+            borderRadius: 16,
+            padding: "24px 28px",
+            marginBottom: 32,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 8 }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: T.text }}>Application Status</div>
+              {activeStep && (
+                <div style={{ fontSize: 13, color: T.dim, marginTop: 2 }}>
+                  Current step: <strong style={{ color: T.text }}>{activeStep.label}</strong>
+                  {activeStep.label === "Crarity Review" && " — usually within 24–48 hours"}
+                  {activeStep.label === "AI Scoring" && " — usually takes 1–2 minutes"}
+                  {activeStep.label === "Live to Employers" && " — employers are browsing your profile"}
                 </div>
-                <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.01em", lineHeight: 1 }}>
-                  {Math.round(Number(val) || 0)}/25
-                </div>
-              </div>
-            );
-          })}
+              )}
+            </div>
+            {session.admin_approved && (
+              <span style={{ background: T.green, color: T.text, fontWeight: 700, fontSize: 12, padding: "4px 12px", borderRadius: 99 }}>
+                ✓ Approved
+              </span>
+            )}
+          </div>
+
+          <div className="cr-pipeline">
+            {pipeline.map((step, i) => (
+              <PipelineStep key={step.label} step={step} index={i} total={pipeline.length} />
+            ))}
+          </div>
         </div>
 
-        {/* SECTION 3: Interviews */}
-        <h2 style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.01em", margin: "0 0 24px" }}>Interview Invitations</h2>
-        {interviews.length === 0 ? (
+        {/* ── PROFILE INCOMPLETE BANNER ── */}
+        {!profileComplete && (
           <div
             style={{
-              background: T.white,
-              border: `1px solid ${T.border}`,
+              background: "#fffbeb",
+              border: "1px solid #fde68a",
               borderRadius: 12,
-              padding: "48px 24px",
-              textAlign: "center",
-              marginBottom: 40,
+              padding: "16px 20px",
+              marginBottom: 24,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 16,
+              flexWrap: "wrap",
             }}
           >
-            <div
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: "50%",
-                background: "#f1f1ee",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 16,
-              }}
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 18 }}>⚠️</span>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#92400e" }}>Your profile is incomplete</div>
+                <div style={{ fontSize: 13, color: "#a16207", marginTop: 2 }}>
+                  Add {profileItems.filter(p => !p.done).map(p => p.label.toLowerCase()).join(" and ")} so employers know more about you.
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate(`/assessment/academic-counselor/profile?session=${session.id}`)}
+              style={{ background: "#1a1a1a", color: "#fff", border: "none", borderRadius: 99, padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.sans, flexShrink: 0 }}
             >
-              <CalendarIcon size={32} color={T.dim} />
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 500, color: T.text, marginBottom: 6 }}>
-              No interview invitations yet
-            </div>
-            <div style={{ fontSize: 14, color: T.dim }}>
-              We'll ping you as soon as an employer sends an interview request.
-            </div>
+              Complete profile
+            </button>
           </div>
+        )}
+
+        {/* ── INTERVIEW INVITATIONS ── */}
+        <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.01em", margin: "0 0 16px" }}>
+          Interview Invitations
+        </h2>
+
+        {interviews.length === 0 ? (
+          <InterviewEmptyState approved={session.admin_approved} />
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 40 }}>
             {interviews.map((iv) => {
               const date = new Date(iv.scheduled_at);
-              const dateStr = date.toLocaleString(undefined, {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              });
+              const dateStr = date.toLocaleString(undefined, { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
               const statusPill = pillForStatus(iv.status);
               return (
-                <div
-                  key={iv.id}
-                  style={{
-                    background: T.white,
-                    border: `1px solid ${T.border}`,
-                    borderRadius: 8,
-                    padding: 20,
-                  }}
-                >
-                  <div style={{ fontSize: 18, fontWeight: 700, color: T.text, marginBottom: 4 }}>
-                    {iv.company_name}
-                  </div>
-                  <div style={{ fontSize: 14, color: T.dim, marginBottom: 2 }}>{dateStr}</div>
-                  <div style={{ fontSize: 14, color: T.dim, marginBottom: 14 }}>
-                    {iv.interview_type}
-                  </div>
-                  <div style={{ marginBottom: iv.status === "pending" || (iv.status === "scheduled" && iv.google_meet_link) ? 16 : 0 }}>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        padding: "4px 12px",
-                        borderRadius: 99,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        background: statusPill.bg,
-                        color: statusPill.fg,
-                        border: `1px solid ${statusPill.border}`,
-                      }}
-                    >
+                <div key={iv.id} style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 20 }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 17, fontWeight: 700, color: T.text }}>{iv.company_name}</div>
+                      <div style={{ fontSize: 13, color: T.dim, marginTop: 3 }}>{iv.interview_type} · {iv.duration_minutes} min</div>
+                      <div style={{ fontSize: 13, color: T.dim, marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                        <CalendarIcon size={12} /> {dateStr}
+                      </div>
+                    </div>
+                    <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: 99, fontSize: 12, fontWeight: 600, background: statusPill.bg, color: statusPill.fg, border: `1px solid ${statusPill.border}`, flexShrink: 0 }}>
                       {statusPill.label}
                     </span>
                   </div>
                   {iv.status === "pending" && (
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <button
-                        onClick={() => updateInterviewStatus(iv.id, "scheduled")}
-                        style={pillBtnStyle("solid")}
-                      >
-                        Accept Interview
-                      </button>
-                      <button
-                        onClick={() => updateInterviewStatus(iv.id, "declined")}
-                        style={pillBtnStyle("ghost")}
-                      >
-                        Decline
-                      </button>
+                      <button onClick={() => updateInterviewStatus(iv.id, "scheduled")} style={pillBtnStyle("solid")}>Accept Interview</button>
+                      <button onClick={() => updateInterviewStatus(iv.id, "declined")} style={pillBtnStyle("ghost")}>Decline</button>
                     </div>
                   )}
                   {iv.status === "scheduled" && iv.google_meet_link && (
-                    <a
-                      href={iv.google_meet_link}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={pillBtnStyle("solid") as any}
-                    >
-                      Join Meeting
+                    <a href={iv.google_meet_link} target="_blank" rel="noreferrer" style={pillBtnStyle("solid") as any}>
+                      Join Meeting →
                     </a>
                   )}
                 </div>
@@ -522,76 +542,201 @@ export default function CandidateDashboard() {
           </div>
         )}
 
-        {/* SECTION 4: Profile completeness */}
-        {!profileComplete && (
-          <div
-            style={{
-              background: T.white,
-              border: `1px solid ${T.border}`,
-              borderRadius: 12,
-              padding: 24,
-            }}
-          >
-            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Complete your profile</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-              {profileItems.map((p) => (
-                <div key={p.label} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: p.done ? T.text : T.dim }}>
-                  {p.done ? <CheckCircle2 size={16} color={T.greenStrong} /> : <Circle size={16} />}
-                  {p.label}
-                </div>
-              ))}
+        {/* ── PREP TIPS (shown while waiting for interviews) ── */}
+        {interviews.filter(iv => iv.status !== "declined").length === 0 && (
+          <div style={{ marginTop: 36, marginBottom: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <Sparkles size={16} color={T.dim} />
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: T.text, margin: 0 }}>
+                Use this time to prepare
+              </h2>
             </div>
-            <button
-              onClick={() => navigate(`/assessment/academic-counselor/profile?session=${session.id}`)}
-              style={pillBtnStyle("solid")}
-            >
-              Complete your profile
-            </button>
+            <div className="cr-grid-2" style={{ gap: 12 }}>
+              {PREP_TIPS.map((tip) => {
+                const Icon = tip.icon;
+                return (
+                  <div
+                    key={tip.title}
+                    style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: "18px 20px", display: "flex", gap: 14 }}
+                  >
+                    <div style={{ width: 34, height: 34, borderRadius: 9, background: T.off, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Icon size={16} color={T.dim} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: T.text, marginBottom: 4 }}>{tip.title}</div>
+                      <div style={{ fontSize: 13, color: T.dim, lineHeight: 1.55 }}>{tip.body}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
+
+        {/* ── PERFORMANCE ── */}
+        <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.01em", margin: "40px 0 16px" }}>
+          Your Performance
+        </h2>
+        <div className="cr-grid-2" style={{ marginBottom: 8 }}>
+          {GAMES.map((g) => {
+            const data = (session.scores ?? {})[g.key] ?? {};
+            const val = g.key === "game1" ? data.score ?? data.total_score ?? 0 : data.total_score ?? 0;
+            const pct = Math.round((Number(val) / 25) * 100);
+            return (
+              <div key={g.key} style={{ background: T.white, border: "1px solid #e5e5e5", borderRadius: 12, padding: "18px 20px" }}>
+                <div style={{ fontSize: 13, color: T.dim, fontWeight: 500, marginBottom: 10 }}>{g.name}</div>
+                <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 8 }}>
+                  <div style={{ fontSize: 26, fontWeight: 700, color: T.text, lineHeight: 1 }}>{Math.round(Number(val) || 0)}<span style={{ fontSize: 14, color: T.dim, fontWeight: 500 }}>/25</span></div>
+                  <div style={{ fontSize: 13, color: T.dim }}>{pct}%</div>
+                </div>
+                {/* Progress bar */}
+                <div style={{ height: 4, background: "#f0efec", borderRadius: 99, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${pct}%`, background: pct >= 70 ? T.green : pct >= 50 ? "#fbbf24" : "#f87171", borderRadius: 99, transition: "width 600ms ease" }} />
+                </div>
+                {data.feedback && (
+                  <div style={{ marginTop: 10, fontSize: 12, color: T.dim, lineHeight: 1.5, fontStyle: "italic" }}>
+                    "{data.feedback}"
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
       </div>
     </CandidateLayout>
   );
 }
 
+// ── SUB-COMPONENTS ──────────────────────────────────────────────────
+
+function PipelineStep({ step, index, total }: { step: PipelineStep; index: number; total: number }) {
+  const { state, label, sublabel } = step;
+  const isLast = index === total - 1;
+
+  const iconBg = state === "done" ? T.text : state === "active" ? T.green : "#f0efec";
+  const iconColor = state === "done" ? "#fff" : T.text;
+
+  return (
+    <div style={{ position: "relative", paddingBottom: 4 }}>
+      {/* Connector line */}
+      {!isLast && (
+        <div style={{
+          position: "absolute",
+          top: 14,
+          left: "calc(50% + 14px)",
+          right: "-50%",
+          height: 2,
+          background: state === "done" ? T.text : "#e8e3d8",
+          zIndex: 0,
+        }} />
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative", zIndex: 1 }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: "50%",
+          background: iconBg,
+          border: state === "active" ? `2px solid ${T.text}` : "none",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexShrink: 0,
+        }}>
+          {state === "done" && <CheckCircle2 size={14} color={iconColor} />}
+          {state === "active" && <Clock size={13} color={T.text} />}
+          {state === "pending" && <Circle size={10} color="#bbb" />}
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: state === "pending" ? "#bbb" : T.text }}>{label}</div>
+          <div style={{ fontSize: 11, color: T.dim, marginTop: 2, lineHeight: 1.4 }}>{sublabel}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InterviewEmptyState({ approved }: { approved: boolean }) {
+  if (approved) {
+    return (
+      <div style={{
+        background: T.white,
+        border: `1px solid ${T.border}`,
+        borderRadius: 12,
+        padding: "36px 28px",
+        marginBottom: 8,
+      }}>
+        <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
+          <div style={{ width: 52, height: 52, borderRadius: "50%", background: T.green, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>
+            🎯
+          </div>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: T.text, marginBottom: 6 }}>
+              Your profile is live — employers are looking
+            </div>
+            <div style={{ fontSize: 14, color: T.dim, lineHeight: 1.65, marginBottom: 16 }}>
+              Crarity has approved your profile and shared it with matched employers. When a company wants to meet you, they'll send an interview request directly here.
+            </div>
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.dim }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green, display: "inline-block" }} />
+                Most candidates hear back within 1–2 weeks
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.dim }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green, display: "inline-block" }} />
+                Keep your status updated so employers know you're available
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      background: T.white,
+      border: `1px solid ${T.border}`,
+      borderRadius: 12,
+      padding: "36px 28px",
+      marginBottom: 8,
+    }}>
+      <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#f0efec", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>
+          ⏳
+        </div>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: T.text, marginBottom: 6 }}>
+            Hang tight — your application is being reviewed
+          </div>
+          <div style={{ fontSize: 14, color: T.dim, lineHeight: 1.65, marginBottom: 16 }}>
+            The Crarity team is reviewing your results. Once approved, your profile goes live and employers can see and contact you. This usually takes 24–48 hours.
+          </div>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.dim }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fbbf24", display: "inline-block" }} />
+              You'll get an email when your profile is approved
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.dim }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fbbf24", display: "inline-block" }} />
+              Use the time to prep — tips are below
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function pillForStatus(s: string) {
   switch (s) {
-    case "scheduled":
-      return { label: "Scheduled", bg: "#E6F4D7", fg: "#3d6b00", border: "#C5E831" };
-    case "completed":
-      return { label: "Completed", bg: "#f1f1ee", fg: "#6b6b6b", border: "#e8e3d8" };
-    case "declined":
-      return { label: "Declined", bg: "#f1f1ee", fg: "#6b6b6b", border: "#e8e3d8" };
-    default:
-      return { label: "Pending", bg: "#FFF4CE", fg: "#7a5a00", border: "#F0D265" };
+    case "scheduled": return { label: "Confirmed", bg: "#E6F4D7", fg: "#3d6b00", border: "#C5E831" };
+    case "completed": return { label: "Completed", bg: "#f1f1ee", fg: "#6b6b6b", border: "#e8e3d8" };
+    case "declined": return { label: "Declined", bg: "#f1f1ee", fg: "#6b6b6b", border: "#e8e3d8" };
+    default: return { label: "Awaiting reply", bg: "#FFF4CE", fg: "#7a5a00", border: "#F0D265" };
   }
 }
 
 function pillBtnStyle(variant: "solid" | "ghost"): React.CSSProperties {
   if (variant === "solid") {
-    return {
-      background: "#1a1a1a",
-      color: "#fff",
-      border: "none",
-      borderRadius: 99,
-      padding: "8px 16px",
-      fontSize: 13,
-      fontWeight: 600,
-      cursor: "pointer",
-      fontFamily: '"Satoshi", system-ui, sans-serif',
-      textDecoration: "none",
-      display: "inline-block",
-    };
+    return { background: "#1a1a1a", color: "#fff", border: "none", borderRadius: 99, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: '"Satoshi", system-ui, sans-serif', textDecoration: "none", display: "inline-block" };
   }
-  return {
-    background: "transparent",
-    color: "#1a1a1a",
-    border: "1px solid #e8e3d8",
-    borderRadius: 99,
-    padding: "8px 16px",
-    fontSize: 13,
-    fontWeight: 500,
-    cursor: "pointer",
-    fontFamily: '"Satoshi", system-ui, sans-serif',
-  };
+  return { background: "transparent", color: "#1a1a1a", border: "1px solid #e8e3d8", borderRadius: 99, padding: "8px 16px", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: '"Satoshi", system-ui, sans-serif' };
 }
