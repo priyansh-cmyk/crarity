@@ -464,8 +464,8 @@ export default function CandidateDashboard() {
               <div style={{ fontSize: 18, fontWeight: 700, color: T.text, letterSpacing: "-0.01em" }}>Application Status</div>
               {activeStep && (
                 <div style={{ fontSize: 13, color: T.dim, marginTop: 4 }}>
-                  {activeStep.label === "Team Review" && "Your results are in the review queue — usually within 24–48 hours"}
-                  {activeStep.label === "AI Scoring" && "Your answers are being scored — usually takes 1–2 minutes"}
+                  {activeStep.label === "Team Review" && "Your results are in the review queue, usually within 12-14 hours"}
+                  {activeStep.label === "AI Scoring" && "Your answers are being scored, usually takes 1-2 minutes"}
                   {activeStep.label === "Live to Employers" && "Employers are browsing your profile right now"}
                 </div>
               )}
