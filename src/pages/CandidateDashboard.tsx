@@ -10,6 +10,8 @@ import {
   Zap,
   Eye,
   Briefcase,
+  BadgeCheck,
+  ScanSearch,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -673,21 +675,17 @@ function InterviewEmptyState({ approved }: { approved: boolean }) {
         marginBottom: 8,
       }}>
         <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
-          <div style={{ width: 52, height: 52, borderRadius: "50%", background: T.green, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>
-            🎯
+          <div style={{ width: 52, height: 52, borderRadius: "50%", background: T.green, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <BadgeCheck size={24} color={T.text} strokeWidth={2} />
           </div>
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ fontSize: 17, fontWeight: 700, color: T.text, marginBottom: 6 }}>
-              Your profile is live — employers are looking
+              Congratulations! Your profile is now live and shown to employers.
             </div>
             <div style={{ fontSize: 14, color: T.dim, lineHeight: 1.65, marginBottom: 16 }}>
-              Crarity has approved your profile and shared it with matched employers. When a company wants to meet you, they'll send an interview request directly here.
+              When a company wants to meet you, they'll send an interview request directly here.
             </div>
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.dim }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green, display: "inline-block" }} />
-                Most candidates hear back within 1–2 weeks
-              </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.dim }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green, display: "inline-block" }} />
                 Keep your status updated so employers know you're available
@@ -708,15 +706,15 @@ function InterviewEmptyState({ approved }: { approved: boolean }) {
       marginBottom: 8,
     }}>
       <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#f0efec", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>
-          ⏳
+        <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#f0efec", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <ScanSearch size={22} color={T.dim} strokeWidth={1.75} />
         </div>
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ fontSize: 17, fontWeight: 700, color: T.text, marginBottom: 6 }}>
-            Your application is being reviewed
+            Your application is currently being reviewed!
           </div>
           <div style={{ fontSize: 14, color: T.dim, lineHeight: 1.65, marginBottom: 16 }}>
-            The team is reviewing your results. Once approved, your profile goes live and employers can see and contact you. This usually takes 24 to 48 hours.
+            Once approved, your profile goes live and employers can see and contact you — this usually takes 12–14 hours.
           </div>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.dim }}>
