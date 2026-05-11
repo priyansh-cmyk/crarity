@@ -714,7 +714,7 @@ function InterviewEmptyState({ approved }: { approved: boolean }) {
             Your application is currently being reviewed!
           </div>
           <div style={{ fontSize: 14, color: T.dim, lineHeight: 1.65, marginBottom: 16 }}>
-            Once approved, your profile goes live and employers can see and contact you — this usually takes 12–14 hours.
+            Once approved, your profile goes live and employers can see and contact you, this usually takes 12-14 hours.
           </div>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.dim }}>
