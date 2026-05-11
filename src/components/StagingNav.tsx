@@ -9,7 +9,11 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Map, X, ChevronRight } from "lucide-react";
 
-const IS_STAGING = import.meta.env.VITE_APP_ENV === "staging";
+const IS_STAGING =
+  import.meta.env.VITE_APP_ENV === "staging" ||
+  (typeof window !== "undefined" &&
+    (window.location.hostname.includes("staging") ||
+      window.location.hostname.includes("crarity-git-staging")));
 
 interface NavItem {
   label: string;
