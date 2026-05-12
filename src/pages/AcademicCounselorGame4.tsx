@@ -247,15 +247,29 @@ export default function AcademicCounselorGame4() {
         },
       };
 
-      await supabase
-        .from("assessment_sessions")
-        .update({
-          scores: merged,
-          current_step: "filter-3",
-          total_score: total,
-          completed: true,
-        })
-        .eq("id", sessionId);
+      // Retry the save up to 3 times — a silent RLS/network failure here would lose game4 data
+      let saveError: unknown = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { error } = await supabase
+          .from("assessment_sessions")
+          .update({
+            scores: merged,
+            current_step: "filter-3",
+            total_score: total,
+            completed: true,
+          })
+          .eq("id", sessionId);
+        if (!error) {
+          saveError = null;
+          break;
+        }
+        saveError = error;
+        await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+      }
+
+      if (saveError) {
+        throw saveError;
+      }
 
       fadeNavigate(`/assessment/academic-counselor/filter-3?session=${sessionId}${roleQs}`);
     } catch {
