@@ -69,16 +69,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }}
     >
       <div style={{ padding: "24px 20px", borderBottom: `1px solid ${T.border}` }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 8,
-              background: T.green,
-              display: "inline-block",
-            }}
-          />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <CrarityIcon size={28} />
           <span style={{ fontSize: 16, fontWeight: 700, color: T.text }}>Crarity Admin</span>
         </div>
       </div>
@@ -186,7 +178,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <span style={{ fontWeight: 700 }}>Crarity Admin</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <CrarityIcon size={22} />
+            <span style={{ fontWeight: 700 }}>Crarity Admin</span>
+          </div>
           <span style={{ width: 20 }} />
         </div>
         <div style={{ padding: 32 }}>{children}</div>
@@ -199,5 +194,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
       `}</style>
     </div>
+  );
+}
+
+function CrarityIcon({ size = 28 }: { size?: number }) {
+  // 4-quadrant logo mark: each shape is a square with a concave
+  // quarter-circle cutout at the corner facing the center.
+  // ViewBox: 28x28, center at (14,14), quadrant width 10, radius 5.
+  const r = size;
+  return (
+    <svg
+      width={r}
+      height={r}
+      viewBox="0 0 28 28"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: "block", flexShrink: 0 }}
+    >
+      <rect width="28" height="28" rx="6" fill="#C5E831" />
+      {/* Top-left */}
+      <path d="M4 4 L14 4 L14 9 A5 5 0 0 0 9 14 L4 14 Z" fill="#1a1a1a" />
+      {/* Top-right */}
+      <path d="M24 4 L24 14 L19 14 A5 5 0 0 0 14 9 L14 4 Z" fill="#1a1a1a" />
+      {/* Bottom-left */}
+      <path d="M4 24 L4 14 L9 14 A5 5 0 0 0 14 19 L14 24 Z" fill="#1a1a1a" />
+      {/* Bottom-right */}
+      <path d="M24 24 L14 24 L14 19 A5 5 0 0 0 19 14 L24 14 Z" fill="#1a1a1a" />
+    </svg>
   );
 }
