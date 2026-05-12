@@ -551,10 +551,17 @@ export default function AcademicCounselorGame3() {
         },
       };
 
-      await supabase
-        .from("assessment_sessions")
-        .update({ scores: merged, current_step: "filter-2" })
-        .eq("id", sessionId);
+      let saveErr: unknown = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { error } = await supabase
+          .from("assessment_sessions")
+          .update({ scores: merged, current_step: "filter-2" })
+          .eq("id", sessionId);
+        if (!error) { saveErr = null; break; }
+        saveErr = error;
+        await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+      }
+      if (saveErr) throw saveErr;
 
       fadeNavigate(`/assessment/academic-counselor/filter-2?session=${sessionId}${roleQs}`);
     } catch {
@@ -592,10 +599,18 @@ export default function AcademicCounselorGame3() {
           timestamp: new Date().toISOString(),
         },
       };
-      await supabase
-        .from("assessment_sessions")
-        .update({ scores: merged, current_step: "filter-2" })
-        .eq("id", sessionId);
+      let skipErr: unknown = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { error } = await supabase
+          .from("assessment_sessions")
+          .update({ scores: merged, current_step: "filter-2" })
+          .eq("id", sessionId);
+        if (!error) { skipErr = null; break; }
+        skipErr = error;
+        await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+      }
+      if (skipErr) throw skipErr;
+
       fadeNavigate(`/assessment/academic-counselor/filter-2?session=${sessionId}${roleQs}`);
     } catch {
       toast({
