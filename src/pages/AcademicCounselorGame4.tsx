@@ -271,7 +271,7 @@ export default function AcademicCounselorGame4() {
         throw saveError;
       }
 
-      fadeNavigate(`/assessment/academic-counselor/filter-3?session=${sessionId}${roleQs}`);
+      fadeNavigate(`/assessment/academic-counselor/filter-3?session=${sessionId}${roleQs}&score=${total}`);
     } catch {
       toast({
         title: "Couldn't save your progress",

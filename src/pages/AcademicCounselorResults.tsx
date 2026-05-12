@@ -25,6 +25,8 @@ export default function AcademicCounselorResults() {
   const sessionId = params.get("session");
   const debugMode = params.get("debug") === "true";
   const debugScore = parseInt(params.get("score") || "0", 10);
+  // Fallback score passed via URL when DB save was delayed or failed
+  const urlScore = parseInt(params.get("score") || "0", 10);
 
   const [loading, setLoading] = useState(true);
   const [calculating, setCalculating] = useState(true);
@@ -71,11 +73,18 @@ export default function AcademicCounselorResults() {
         .maybeSingle();
       if (cancelled) return;
       if (err || !data) {
-        setError("not_found");
+        // If DB lookup fails but we have a score from the URL (passed by game 4), use it
+        if (urlScore > 0) {
+          setSession({ id: sessionId, total_score: urlScore, completed: true });
+        } else {
+          setError("not_found");
+        }
         setLoading(false);
         return;
       }
-      setSession(data as SessionRow);
+      // If DB has no score yet (save still propagating) but URL has one, prefer URL score
+      const effectiveScore = (data.total_score ?? 0) > 0 ? (data.total_score ?? 0) : urlScore;
+      setSession({ ...(data as SessionRow), total_score: effectiveScore, completed: effectiveScore > 0 ? true : data.completed });
       setLoading(false);
     }
     load();
@@ -202,17 +211,18 @@ export default function AcademicCounselorResults() {
     return (
       <div style={wrapStyle}>
         <div style={innerStyle}>
+          <div style={{ fontSize: 36, marginBottom: 16 }}>⏳</div>
           <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, marginBottom: 16 }}>
-            Assessment not completed yet
+            Your results are on their way
           </div>
           <div style={{ fontSize: 16, color: T.dim, marginBottom: 32, lineHeight: 1.6 }}>
-            Finish all the games to see your results.
+            We're finishing up your score - this usually takes just a moment. Check back in a minute or refresh this page.
           </div>
           <button
-            onClick={() => navigate("/assessment/academic-counselor")}
+            onClick={() => window.location.reload()}
             style={pillBtn(isMobile)}
           >
-            Back to assessment <ArrowRight size={16} color={T.accent} />
+            Refresh <ArrowRight size={16} color={T.accent} />
           </button>
         </div>
       </div>
