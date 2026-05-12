@@ -16,7 +16,9 @@ export default function AcademicCounselorFilter3() {
   const [params] = useSearchParams();
   const sessionId = params.get("session") ?? "";
   const roleId = params.get("role");
+  const scoreParam = params.get("score");
   const roleQs = roleId ? `&role=${roleId}` : "";
+  const scoreQs = scoreParam ? `&score=${scoreParam}` : "";
   const { fadeNavigate, pageStyle } = useFadeNavigate();
   const { toast } = useToast();
 
@@ -37,10 +39,10 @@ export default function AcademicCounselorFilter3() {
           current_step: "results",
         })
         .eq("id", sessionId);
-      fadeNavigate(`/assessment/academic-counselor/results?session=${sessionId}${roleQs}`);
+      fadeNavigate(`/assessment/academic-counselor/results?session=${sessionId}${roleQs}${scoreQs}`);
     } catch {
       toast({ title: "Couldn't save", description: "Moving on anyway.", variant: "destructive" });
-      fadeNavigate(`/assessment/academic-counselor/results?session=${sessionId}${roleQs}`);
+      fadeNavigate(`/assessment/academic-counselor/results?session=${sessionId}${roleQs}${scoreQs}`);
     }
   };
 
