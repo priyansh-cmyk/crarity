@@ -41,6 +41,8 @@ type Session = {
   created_at: string;
   scores: any;
   total_score: number;
+  completed: boolean;
+  current_step: string;
 };
 
 type ReviewMeta = {
@@ -100,10 +102,12 @@ export default function AdminScores() {
 
   const load = async () => {
     setLoading(true);
+    // Include completed sessions AND sessions that reached the end of the flow
+    // but failed to get marked completed (current_step = "results" or "filter-3")
     const { data, error } = await supabase
       .from("assessment_sessions")
-      .select("id,name,email,phone,city,created_at,scores,total_score")
-      .eq("completed", true)
+      .select("id,name,email,phone,city,created_at,scores,total_score,completed,current_step")
+      .or("completed.eq.true,current_step.eq.results,current_step.eq.filter-3")
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     setRows((data || []) as Session[]);
@@ -191,12 +195,20 @@ function SessionCard({ s, onOpen }: { s: Session; onOpen: () => void }) {
   const meta = reviewMeta(s);
   const showAi = status === "pending";
   const total = showAi ? aiTotal(s) : finalTotal(s);
+  const incomplete = !s.completed;
 
   return (
-    <div style={{ background: "#fff", border: `1px solid ${T.border}`, borderRadius: 12, padding: 24 }}>
+    <div style={{ background: "#fff", border: `1px solid ${incomplete ? "#fbbf24" : T.border}`, borderRadius: 12, padding: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>{s.name || "—"}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>{s.name || "—"}</div>
+            {incomplete && (
+              <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 99, letterSpacing: 0.3 }}>
+                INCOMPLETE SAVE
+              </span>
+            )}
+          </div>
           <div style={{ fontSize: 12, color: T.dim, marginTop: 4 }}>Submitted {timeAgo(s.created_at)}</div>
         </div>
         <div style={{ textAlign: "right" }}>
@@ -245,6 +257,7 @@ function StatusBadge({ status, variant }: { status: "pending" | "reviewed" | "fl
 }
 
 function ReviewModal({ session, onClose, onSaved }: { session: Session; onClose: () => void; onSaved: () => Promise<void> }) {
+  const isIncomplete = !session.completed;
   const initial = reviewMeta(session);
   const [scores, setScores] = useState<Record<GameKey, number>>(() => ({
     game1: initial.manual_scores?.game1 ?? aiScore(session, "game1"),
@@ -278,9 +291,12 @@ function ReviewModal({ session, onClose, onSaved }: { session: Session; onClose:
     };
     const newScores = { ...(session.scores || {}), review };
     const newTotal = action === "manual" ? yourTot : aiTot;
+    const updatePayload: Record<string, unknown> = { scores: newScores, total_score: newTotal };
+    // If the session never got marked completed (save failed mid-assessment), fix it now
+    if (isIncomplete) updatePayload.completed = true;
     const { error } = await supabase
       .from("assessment_sessions")
-      .update({ scores: newScores, total_score: newTotal })
+      .update(updatePayload)
       .eq("id", session.id);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
@@ -294,10 +310,22 @@ function ReviewModal({ session, onClose, onSaved }: { session: Session; onClose:
         {/* Header */}
         <div style={{ position: "sticky", top: 0, background: "#fff", borderBottom: `1px solid ${T.border}`, padding: "24px 32px", borderTopLeftRadius: 16, borderTopRightRadius: 16, zIndex: 2 }}>
           <button onClick={onClose} style={{ position: "absolute", top: 20, right: 20, background: "none", border: "none", cursor: "pointer", color: T.text }}><X size={22} /></button>
-          <h2 style={{ margin: 0, fontSize: 32, fontWeight: 700 }}>{session.name || "Candidate"}</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <h2 style={{ margin: 0, fontSize: 32, fontWeight: 700 }}>{session.name || "Candidate"}</h2>
+            {isIncomplete && (
+              <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 99 }}>
+                INCOMPLETE SAVE - scores missing for some games
+              </span>
+            )}
+          </div>
           <div style={{ marginTop: 8, fontSize: 14, color: T.dim }}>
             {[session.email, session.phone, session.city].filter(Boolean).join(" | ")}
           </div>
+          {isIncomplete && (
+            <div style={{ marginTop: 8, fontSize: 13, color: "#92400e", background: "#fef3c7", borderRadius: 8, padding: "8px 12px" }}>
+              This session reached the end of the assessment but the final save failed. Some game scores may be missing. Enter manual scores below - saving will also mark this session as completed.
+            </div>
+          )}
           <div style={{ marginTop: 12, fontSize: 16 }}>
             AI Total Score: <strong>{aiTot}/100</strong>
           </div>
