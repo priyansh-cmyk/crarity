@@ -77,6 +77,8 @@ export default function AcademicCounselorStart() {
   const [willingToRelocate, setWillingToRelocate] = useState<boolean | null>(null);
   const [relocationTimeline, setRelocationTimeline] = useState<RelocationTimeline | null>(null);
   const [resumeSession, setResumeSession] = useState<{ id: string; current_step: string } | null>(null);
+  // Holds the ID of the partial session created at the email step
+  const [partialSessionId, setPartialSessionId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Step URL map for resume navigation
@@ -91,13 +93,13 @@ export default function AcademicCounselorStart() {
     "results": "/assessment/academic-counselor/results",
   };
   const STEP_LABELS: Record<string, string> = {
-    "game-1": "Game 1 – Pick Your Shot",
-    "game-2": "Game 2 – Say It Like You Mean It",
-    "game-3": "Game 3 – Beyond The Student",
-    "game-4": "Game 4 – Handle the Heat",
-    "filter-1": "Questions – Part 1",
-    "filter-2": "Questions – Part 2",
-    "filter-3": "Questions – Part 3",
+    "game-1": "Game 1 - Pick Your Shot",
+    "game-2": "Game 2 - Say It Like You Mean It",
+    "game-3": "Game 3 - Beyond The Student",
+    "game-4": "Game 4 - Handle the Heat",
+    "filter-1": "Questions - Part 1",
+    "filter-2": "Questions - Part 2",
+    "filter-3": "Questions - Part 3",
     "results": "Results",
   };
 
@@ -121,24 +123,41 @@ export default function AcademicCounselorStart() {
     try {
       const cityTrimmed = data.city.trim();
       const bangalore = isBangalore(cityTrimmed);
-      const { data: inserted, error } = await supabase
-        .from("assessment_sessions")
-        .insert({
-          name: data.name.trim(),
-          phone: data.phone.replace(/\s/g, ""),
-          email: data.email.trim().toLowerCase(),
-          city: cityTrimmed,
-          current_step: "game-1",
-          role_id: roleId,
-          willing_to_relocate: bangalore ? true : willingToRelocate,
-          relocation_timeline: bangalore ? null : relocationTimeline,
-        })
-        .select("id")
-        .maybeSingle();
-      if (error) throw error;
-      if (!inserted?.id) throw new Error("Session was not created");
       const roleQs = roleId ? `&role_id=${roleId}` : "";
-      fadeNavigate(`/assessment/academic-counselor/game-1?session=${inserted.id}${roleQs}`);
+
+      if (partialSessionId) {
+        // Partial session already created at email step — just fill in the rest
+        const { error } = await supabase
+          .from("assessment_sessions")
+          .update({
+            city: cityTrimmed,
+            current_step: "game-1",
+            willing_to_relocate: bangalore ? true : willingToRelocate,
+            relocation_timeline: bangalore ? null : relocationTimeline,
+          })
+          .eq("id", partialSessionId);
+        if (error) throw error;
+        fadeNavigate(`/assessment/academic-counselor/game-1?session=${partialSessionId}${roleQs}`);
+      } else {
+        // Fallback: create fresh (shouldn't happen in normal flow)
+        const { data: inserted, error } = await supabase
+          .from("assessment_sessions")
+          .insert({
+            name: data.name.trim(),
+            phone: data.phone.replace(/\s/g, ""),
+            email: data.email.trim().toLowerCase(),
+            city: cityTrimmed,
+            current_step: "game-1",
+            role_id: roleId,
+            willing_to_relocate: bangalore ? true : willingToRelocate,
+            relocation_timeline: bangalore ? null : relocationTimeline,
+          })
+          .select("id")
+          .maybeSingle();
+        if (error) throw error;
+        if (!inserted?.id) throw new Error("Session was not created");
+        fadeNavigate(`/assessment/academic-counselor/game-1?session=${inserted.id}${roleQs}`);
+      }
     } catch (err) {
       toast({
         title: "Something went wrong",
@@ -163,7 +182,7 @@ export default function AcademicCounselorStart() {
     if (!isValid) return;
 
     if (!isLastQuestion) {
-      // After the email step (step 2), check for an existing incomplete session
+      // After the email step (step 2): check for existing session + create partial record
       if (step === 2) {
         const email = data.email.trim().toLowerCase();
         const { data: existing } = await supabase
@@ -174,9 +193,34 @@ export default function AcademicCounselorStart() {
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        if (existing && existing.id && STEP_URLS[existing.current_step as string]) {
-          setResumeSession(existing as { id: string; current_step: string });
-          return; // Show resume modal instead of advancing
+
+        if (existing?.id) {
+          if (STEP_URLS[existing.current_step as string]) {
+            // Has a real game step — show resume modal
+            setResumeSession(existing as { id: string; current_step: string });
+            return;
+          } else {
+            // Partial intake session from a previous visit — reuse it silently
+            setPartialSessionId(existing.id);
+            await supabase.from("assessment_sessions")
+              .update({ name: data.name.trim(), phone: data.phone.replace(/\s/g, ""), email })
+              .eq("id", existing.id);
+          }
+        } else {
+          // No prior session — create partial record now so admin can see them
+          const { data: inserted } = await supabase
+            .from("assessment_sessions")
+            .insert({
+              name: data.name.trim(),
+              phone: data.phone.replace(/\s/g, ""),
+              email,
+              current_step: "intake",
+              role_id: roleId,
+            })
+            .select("id")
+            .maybeSingle();
+          if (inserted?.id) setPartialSessionId(inserted.id);
+          // Best-effort — don't block the user if insert fails
         }
       }
       setVisible(false);
