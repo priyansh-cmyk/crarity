@@ -417,15 +417,60 @@ function GameReview({
   );
 }
 
+// Lead lookup for game 1 — mirrors AcademicCounselorGame1.tsx
+const GAME1_LEADS: Record<string, { name: string; city: string; timeline: string; activity: string }> = {
+  anjali: { name: "Anjali Mehta",  city: "Pune",      timeline: "After boards",       activity: "Webinar 2 days ago" },
+  rakesh: { name: "Rakesh Kumar",  city: "Lucknow",   timeline: "Exam in 2 months",   activity: "Demo today 5 PM" },
+  deepa:  { name: "Deepa Iyer",   city: "Chennai",   timeline: "Boards in 10 months", activity: "Inquiry form this morning" },
+  suresh: { name: "Suresh Patil",  city: "Nagpur",    timeline: "Decide this week",   activity: "Webinar 1 week ago, asked 3 Qs" },
+  priya:  { name: "Priya Reddy",   city: "Hyderabad", timeline: "Start in 2 weeks",   activity: "Callback requested yesterday" },
+  vikram: { name: "Vikram Joshi",  city: "Mumbai",    timeline: "Decision by month end", activity: "Inquiry 4 days ago" },
+  meera:  { name: "Meera Nair",    city: "Kochi",     timeline: "Boards in 3 months, start NOW", activity: "WhatsApp 10 mins ago" },
+  arjun:  { name: "Arjun Desai",   city: "Ahmedabad", timeline: "Wants more info",    activity: "Webinar last month" },
+};
+const GAME1_CORRECT = new Set(["rakesh", "suresh", "meera"]);
+
 function GameEvidence({ session, gameKey }: { session: Session; gameKey: GameKey }) {
   const g = session.scores?.[gameKey] || {};
   if (gameKey === "game1") {
-    const picks: string[] = g.selected_leads || g.picks || [];
-    return picks.length ? (
-      <div style={{ fontSize: 12, color: T.text }}>
-        <strong>Picks:</strong> {picks.join(", ")}
+    // Game 1 saves picks as g.selected (array of lead IDs)
+    const picks: string[] = g.selected || g.selected_leads || g.picks || [];
+    if (!picks.length) return <div style={{ fontSize: 12, color: T.dim }}>No picks recorded.</div>;
+    const correctIds = (g.correct as string[]) || Array.from(GAME1_CORRECT);
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ fontSize: 11, color: T.dim, fontWeight: 700, marginBottom: 4 }}>
+          CANDIDATE PICKS ({picks.length}/3)
+        </div>
+        {picks.map((id) => {
+          const lead = GAME1_LEADS[id];
+          const isCorrect = correctIds.includes(id);
+          return (
+            <div key={id} style={{
+              display: "flex", alignItems: "flex-start", gap: 8,
+              background: isCorrect ? "#f0fdf4" : "#fef2f2",
+              border: `1px solid ${isCorrect ? "#bbf7d0" : "#fecaca"}`,
+              borderRadius: 8, padding: "8px 10px", fontSize: 12,
+            }}>
+              <span style={{
+                flexShrink: 0, marginTop: 1, width: 16, height: 16,
+                borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center",
+                background: isCorrect ? "#16a34a" : "#dc2626", color: "#fff", fontWeight: 700, fontSize: 10,
+              }}>
+                {isCorrect ? "✓" : "✗"}
+              </span>
+              <div>
+                <div style={{ fontWeight: 700, color: T.text }}>{lead?.name ?? id}</div>
+                {lead && <div style={{ color: T.dim, marginTop: 2 }}>{lead.timeline} · {lead.activity}</div>}
+              </div>
+            </div>
+          );
+        })}
+        <div style={{ fontSize: 11, color: T.dim, marginTop: 4 }}>
+          Correct picks: {picks.filter((id) => GAME1_CORRECT.has(id)).length}/3 (Rakesh Kumar, Suresh Patil, Meera Nair)
+        </div>
       </div>
-    ) : null;
+    );
   }
   if (gameKey === "game2") {
     const answers: (number | null)[] = g.answers || [];
@@ -457,24 +502,51 @@ function GameEvidence({ session, gameKey }: { session: Session; gameKey: GameKey
     );
   }
   if (gameKey === "game3") {
+    const pitchUrl = g.audio_url || g.pitch_recording_url;
+    const objectionUrl = g.objection2_recording_url;
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {g.audio_url && <audio controls src={g.audio_url} style={{ width: "100%" }} />}
-        {g.transcript && (
-          <div style={{ background: "#fff", border: `1px solid ${T.border}`, borderRadius: 8, padding: 10, fontSize: 12, color: T.text, maxHeight: 120, overflow: "auto" }}>
-            {g.transcript}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {pitchUrl ? (
+          <div>
+            <div style={{ fontSize: 11, color: T.dim, fontWeight: 700, marginBottom: 6 }}>PITCH RECORDING</div>
+            <audio controls src={pitchUrl} style={{ width: "100%" }} />
+            {g.transcript && (
+              <div style={{ marginTop: 6, background: "#fff", border: `1px solid ${T.border}`, borderRadius: 8, padding: 10, fontSize: 12, color: T.text, maxHeight: 100, overflow: "auto" }}>
+                {g.transcript}
+              </div>
+            )}
           </div>
+        ) : (
+          <div style={{ fontSize: 12, color: T.dim }}>No pitch recording.</div>
+        )}
+        {objectionUrl ? (
+          <div>
+            <div style={{ fontSize: 11, color: T.dim, fontWeight: 700, marginBottom: 6 }}>OBJECTION HANDLING RECORDING</div>
+            <audio controls src={objectionUrl} style={{ width: "100%" }} />
+          </div>
+        ) : (
+          <div style={{ fontSize: 12, color: T.dim }}>No objection recording.</div>
         )}
       </div>
     );
   }
   if (gameKey === "game4") {
-    const r1 = g.turn1_response || g.response_text || "";
-    const r2 = g.turn2_response || "";
+    const r1 = g.turn1_response || g.refund_turn1_response || g.response_text || "";
+    const r2 = g.turn2_response || g.refund_turn2_response || "";
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {r1 && <div style={{ background: "#fff", border: `1px solid ${T.border}`, borderRadius: 8, padding: 10, fontSize: 12, whiteSpace: "pre-wrap" }}><strong>Turn 1:</strong> {r1}</div>}
-        {r2 && <div style={{ background: "#fff", border: `1px solid ${T.border}`, borderRadius: 8, padding: 10, fontSize: 12, whiteSpace: "pre-wrap" }}><strong>Turn 2:</strong> {r2}</div>}
+        {r1 ? (
+          <div>
+            <div style={{ fontSize: 11, color: T.dim, fontWeight: 700, marginBottom: 4 }}>TURN 1 - INITIAL REFUND REQUEST</div>
+            <div style={{ background: "#fff", border: `1px solid ${T.border}`, borderRadius: 8, padding: 10, fontSize: 12, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{r1}</div>
+          </div>
+        ) : <div style={{ fontSize: 12, color: T.dim }}>No Turn 1 response.</div>}
+        {r2 ? (
+          <div>
+            <div style={{ fontSize: 11, color: T.dim, fontWeight: 700, marginBottom: 4 }}>TURN 2 - ESCALATION / THREAT</div>
+            <div style={{ background: "#fff", border: `1px solid ${T.border}`, borderRadius: 8, padding: 10, fontSize: 12, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{r2}</div>
+          </div>
+        ) : <div style={{ fontSize: 12, color: T.dim }}>No Turn 2 response.</div>}
       </div>
     );
   }
