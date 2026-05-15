@@ -380,12 +380,12 @@ export default function CandidateDashboard() {
         }
       `}</style>
 
-      <div style={{ maxWidth: 1100 }}>
+      <div style={{ maxWidth: 1100, width: "100%" }}>
 
         {/* ── HEADER ── */}
         <div className="cr-header" style={{ marginBottom: 28 }}>
           <div>
-            <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-0.02em", margin: 0 }}>
+            <h1 style={{ fontSize: "clamp(22px, 6vw, 32px)", fontWeight: 700, letterSpacing: "-0.02em", margin: 0 }}>
               {session.name || user?.email?.split("@")[0] || "Welcome"}
             </h1>
             <div style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 12 }}>

@@ -20,11 +20,15 @@ const T = {
 const LANGUAGES = ["English", "Hindi", "Tamil", "Telugu", "Kannada", "Other"];
 const MAX_RESUME_BYTES = 5 * 1024 * 1024;
 
+const IS_STAGING =
+  typeof window !== "undefined" &&
+  (window.location.hostname.includes("staging") || window.location.hostname.includes("localhost"));
+
 export default function AcademicCounselorProfile() {
   const { fadeNavigate, pageStyle } = useFadeNavigate();
   const [params] = useSearchParams();
   const sessionId = params.get("session");
-  const debugMode = params.get("debug") === "true";
+  const debugMode = params.get("debug") === "true" || IS_STAGING;
   const roleId = params.get("role_id");
   const roleQs = roleId ? `&role_id=${roleId}` : "";
 
