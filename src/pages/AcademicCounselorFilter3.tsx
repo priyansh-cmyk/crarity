@@ -15,9 +15,9 @@ const OPTIONS = [
 export default function AcademicCounselorFilter3() {
   const [params] = useSearchParams();
   const sessionId = params.get("session") ?? "";
-  const roleId = params.get("role");
+  const roleId = params.get("role_id");
   const scoreParam = params.get("score");
-  const roleQs = roleId ? `&role=${roleId}` : "";
+  const roleQs = roleId ? `&role_id=${roleId}` : "";
   const scoreQs = scoreParam ? `&score=${scoreParam}` : "";
   const { fadeNavigate, pageStyle } = useFadeNavigate();
   const { toast } = useToast();

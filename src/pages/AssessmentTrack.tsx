@@ -29,7 +29,7 @@ const STEPS: StepInfo[] = [
   {
     key: "ai_scoring",
     label: "AI Scoring in Progress",
-    description: "Our AI is evaluating your responses. This usually takes 1–2 minutes.",
+    description: "Our AI is evaluating your responses. This usually takes 1-2 minutes.",
   },
   {
     key: "admin_review",

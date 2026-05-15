@@ -20,7 +20,6 @@ import NotFound from "./pages/NotFound";
 import AcademicCounselorAssessment from "./pages/AcademicCounselorAssessment";
 import AcademicCounselorAbout from "./pages/AcademicCounselorAbout";
 import AcademicCounselorStart from "./pages/AcademicCounselorStart";
-import MobileBlockGate from "./components/MobileBlockGate";
 import AcademicCounselorGame1 from "./pages/AcademicCounselorGame1";
 import AcademicCounselorGame2 from "./pages/AcademicCounselorGame2";
 import AcademicCounselorGame3 from "./pages/AcademicCounselorGame3";
