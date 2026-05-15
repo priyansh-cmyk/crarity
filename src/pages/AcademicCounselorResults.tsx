@@ -56,7 +56,7 @@ export default function AcademicCounselorResults() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "32px 24px",
+        padding: "48px 20px",
       }}
     >
       <style>{`
@@ -76,14 +76,14 @@ export default function AcademicCounselorResults() {
         {/* Icon */}
         <div
           style={{
-            width: 72,
-            height: 72,
+            width: 64,
+            height: 64,
             borderRadius: "50%",
             background: T.green,
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            marginBottom: 28,
+            marginBottom: 24,
           }}
         >
           <MailCheck size={36} color={T.text} strokeWidth={2} />
@@ -92,7 +92,7 @@ export default function AcademicCounselorResults() {
         {/* Heading */}
         <h1
           style={{
-            fontSize: 32,
+            fontSize: "clamp(24px, 7vw, 34px)",
             fontWeight: 700,
             letterSpacing: "-0.02em",
             lineHeight: 1.2,
@@ -106,8 +106,8 @@ export default function AcademicCounselorResults() {
         {/* Subtext */}
         <p
           style={{
-            fontSize: 17,
-            lineHeight: 1.6,
+            fontSize: "clamp(15px, 4vw, 17px)",
+            lineHeight: 1.65,
             color: T.dim,
             margin: "0 0 24px",
           }}
