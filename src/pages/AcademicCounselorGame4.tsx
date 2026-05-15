@@ -228,6 +228,7 @@ export default function AcademicCounselorGame4() {
   if (phase === "context") {
     return (
       <div
+        className="g4-context-wrap"
         style={{
           minHeight: "100vh",
           background: T.white,
@@ -240,9 +241,21 @@ export default function AcademicCounselorGame4() {
           ...pageStyle,
         }}
       >
-        <style>{`@keyframes g4FadeUp { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }`}</style>
+        <style>{`
+          @keyframes g4FadeUp { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
+          @media (max-width: 640px) {
+            .g4-window { max-width: 100% !important; height: calc(100vh - 32px) !important; border-radius: 8px !important; margin: 0 !important; }
+            .g4-wrap { padding: 16px !important; align-items: stretch !important; }
+            .g4-input-area { padding: 12px !important; }
+            .g4-thread { padding: 16px !important; }
+            .g4-timer { font-size: 13px !important; top: 12px !important; right: 16px !important; }
+            .g4-context-wrap { padding: 24px 20px !important; }
+            .g4-context-heading { font-size: 32px !important; }
+          }
+        `}</style>
         <div style={{ maxWidth: 600, width: "100%", animation: "g4FadeUp 320ms ease" }}>
           <h1
+            className="g4-context-heading"
             style={{
               fontSize: 48,
               fontWeight: 700,
@@ -300,6 +313,7 @@ export default function AcademicCounselorGame4() {
 
   return (
     <div
+      className="g4-wrap"
       style={{
         minHeight: "100vh",
         background: T.white,
@@ -326,10 +340,20 @@ export default function AcademicCounselorGame4() {
         @media (max-width: 720px) {
           .g4-sidebar { display: none; }
         }
+        @media (max-width: 640px) {
+          .g4-window { max-width: 100% !important; height: calc(100vh - 32px) !important; border-radius: 8px !important; margin: 0 !important; }
+          .g4-wrap { padding: 16px !important; align-items: stretch !important; }
+          .g4-input-area { padding: 12px !important; }
+          .g4-thread { padding: 16px !important; }
+          .g4-timer { font-size: 13px !important; top: 12px !important; right: 16px !important; }
+          .g4-context-wrap { padding: 24px 20px !important; }
+          .g4-context-heading { font-size: 32px !important; }
+        }
       `}</style>
 
       {/* Timer */}
       <div
+        className="g4-timer"
         style={{
           position: "absolute",
           top: 16,
@@ -345,6 +369,7 @@ export default function AcademicCounselorGame4() {
       </div>
 
       <div
+        className="g4-window"
         style={{
           width: "100%",
           maxWidth: 1200,
@@ -417,6 +442,7 @@ export default function AcademicCounselorGame4() {
             {/* Thread */}
             <div
               ref={threadRef}
+              className="g4-thread"
               style={{
                 flex: 1,
                 overflowY: "auto",
@@ -493,6 +519,7 @@ export default function AcademicCounselorGame4() {
             {/* Input */}
             {!showContinue && (
               <div
+                className="g4-input-area"
                 style={{
                   borderTop: `1px solid ${T.border}`,
                   padding: 16,
@@ -524,7 +551,7 @@ export default function AcademicCounselorGame4() {
                         border: `1px solid ${T.border}`,
                         borderRadius: 20,
                         padding: "12px 60px 12px 16px",
-                        fontSize: 14,
+                        fontSize: 16,
                         lineHeight: 1.4,
                         fontFamily: T.sans,
                         color: T.text,

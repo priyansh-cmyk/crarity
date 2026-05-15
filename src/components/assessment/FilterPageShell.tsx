@@ -19,6 +19,7 @@ export function FilterPageShell({
 }) {
   return (
     <div
+      className="fps-wrap"
       style={{
         ...pageStyle,
         minHeight: "100vh",
@@ -31,8 +32,17 @@ export function FilterPageShell({
           'Satoshi, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       }}
     >
+      <style>{`
+        @media (max-width: 640px) {
+          .fps-wrap { padding: 32px 20px !important; }
+          .fps-question { font-size: 22px !important; }
+          .fps-subtitle { font-size: 15px !important; }
+          .fps-btn { width: 100% !important; text-align: center !important; min-width: unset !important; }
+        }
+      `}</style>
       <div style={{ maxWidth: 800, width: "100%", textAlign: "center" }}>
         <h1
+          className="fps-question"
           style={{
             fontSize: 40,
             fontWeight: 700,
@@ -45,6 +55,7 @@ export function FilterPageShell({
         </h1>
         {subtitle && (
           <p
+            className="fps-subtitle"
             style={{
               fontSize: 20,
               fontWeight: 400,
@@ -89,6 +100,7 @@ export function PillButton({
     <button
       onClick={onClick}
       disabled={disabled}
+      className="fps-btn"
       onMouseEnter={(e) => {
         if (!active && !disabled) e.currentTarget.style.background = "#f7f6f3";
       }}

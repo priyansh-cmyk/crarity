@@ -366,6 +366,7 @@ export default function AcademicCounselorGame2() {
             }}
           >
             <div
+              className="g2-timer"
               style={{
                 background: isUrgent ? T.red : "rgba(26,26,26,0.9)",
                 color: isUrgent ? "#fff" : T.green,
@@ -636,6 +637,13 @@ export default function AcademicCounselorGame2() {
         ...fadeStyle,
       }}
     >
+      <style>{`
+        @media (max-width: 640px) {
+          .g2-option { padding: 14px 16px !important; font-size: 15px !important; }
+          .g2-question-text { font-size: 20px !important; }
+          .g2-timer { font-size: 14px !important; top: 12px !important; right: 16px !important; }
+        }
+      `}</style>
       <div style={{ maxWidth: 640, width: "100%" }}>
         <div
           style={{
@@ -650,6 +658,7 @@ export default function AcademicCounselorGame2() {
         </div>
 
         <h2
+          className="g2-question-text"
           style={{
             fontSize: isMobile ? 18 : 20,
             fontWeight: 600,
@@ -668,6 +677,7 @@ export default function AcademicCounselorGame2() {
               <button
                 key={idx}
                 onClick={() => selectOption(idx)}
+                className="g2-option"
                 style={{
                   textAlign: "left",
                   background: isSelected ? T.greenTint : T.white,

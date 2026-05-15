@@ -568,6 +568,7 @@ export default function AcademicCounselorGame3() {
   if (phase === "context") {
     return (
       <div
+        className="g3-wrap"
         style={{
           minHeight: "100vh",
           background: T.white,
@@ -580,7 +581,18 @@ export default function AcademicCounselorGame3() {
           ...pageStyle,
         }}
       >
-        <style>{`@keyframes g3FadeUp { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }`}</style>
+        <style>{`
+          @keyframes g3FadeUp { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
+          @media (max-width: 640px) {
+            .g3-wrap { padding: 24px 20px !important; align-items: flex-start !important; padding-top: 40px !important; }
+            .g3-heading { font-size: 32px !important; }
+            .g3-body-text { font-size: 16px !important; }
+            .g3-objection-box { padding: 16px !important; font-size: 14px !important; margin-bottom: 24px !important; }
+            .g3-record-btn { width: 72px !important; height: 72px !important; }
+            .g3-timer { font-size: 14px !important; }
+            .g3-pill-btn { font-size: 14px !important; padding: 12px 20px !important; }
+          }
+        `}</style>
         <div
           style={{
             maxWidth: 600,
@@ -590,6 +602,7 @@ export default function AcademicCounselorGame3() {
           }}
         >
           <h1
+            className="g3-heading"
             style={{
               fontSize: 48,
               fontWeight: 700,
@@ -602,12 +615,13 @@ export default function AcademicCounselorGame3() {
           >
             Beyond The Student
           </h1>
-          <p style={{ fontSize: 18, lineHeight: 1.6, color: "#6b6b6b", margin: "0 0 32px", textAlign: "left" }}>
+          <p className="g3-body-text" style={{ fontSize: 18, lineHeight: 1.6, color: "#6b6b6b", margin: "0 0 32px", textAlign: "left" }}>
             A parent showed interest but refused due to the ₹48,000 fee and EMI concerns. You have to overcome the
             objection, and close the deal and you have 60 seconds to do the same.
           </p>
           <button
             onClick={() => setPhase("step")}
+            className="g3-pill-btn"
             style={pillBtnStyle()}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)";
@@ -693,6 +707,15 @@ export default function AcademicCounselorGame3() {
       <style>{`
         @keyframes g3FadeUp { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
         @keyframes g3-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
+        @media (max-width: 640px) {
+          .g3-wrap { padding: 24px 20px !important; align-items: flex-start !important; padding-top: 40px !important; }
+          .g3-heading { font-size: 32px !important; }
+          .g3-body-text { font-size: 16px !important; }
+          .g3-objection-box { padding: 16px !important; font-size: 14px !important; margin-bottom: 24px !important; }
+          .g3-record-btn { width: 72px !important; height: 72px !important; }
+          .g3-timer { font-size: 14px !important; }
+          .g3-pill-btn { font-size: 14px !important; padding: 12px 20px !important; }
+        }
       `}</style>
 
       <div key={step + subPhase} style={{ maxWidth: 800, width: "100%", animation: "g3FadeUp 280ms ease" }}>
@@ -991,7 +1014,7 @@ function ObjectionCard({ text }: { text: string }) {
         >
           Parent's response
         </div>
-        <div style={{ fontSize: 18, color: T.text, lineHeight: 1.5, fontWeight: 500 }}>"{text}"</div>
+        <div className="g3-objection-box" style={{ fontSize: 18, color: T.text, lineHeight: 1.5, fontWeight: 500 }}>"{text}"</div>
       </div>
     </div>
   );
@@ -1100,6 +1123,7 @@ function RecordingView({
         </span>
       </div>
       <div
+        className="g3-timer"
         style={{
           fontSize: 36,
           fontWeight: 700,
@@ -1332,6 +1356,7 @@ function PlaybackView({
         </button>
         <button
           onClick={onContinue}
+          className="g3-pill-btn"
           style={{
             display: "inline-flex",
             alignItems: "center",

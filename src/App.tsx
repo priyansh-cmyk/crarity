@@ -85,14 +85,14 @@ const App = () => (
             <Route path="/settings/notifications" element={<ProtectedRoute><ComingSoon title="Notifications" description="Choose what you'd like to be notified about." /></ProtectedRoute>} />
             <Route path="/assessment/academic-counselor" element={<AcademicCounselorAssessment />} />
             <Route path="/assessment/academic-counselor/about" element={<AcademicCounselorAbout />} />
-            <Route path="/assessment/academic-counselor/start" element={<><MobileBlockGate /><AcademicCounselorStart /></>} />
-            <Route path="/assessment/academic-counselor/game-1" element={<><MobileBlockGate /><AcademicCounselorGame1 /></>} />
-            <Route path="/assessment/academic-counselor/game-2" element={<><MobileBlockGate /><AcademicCounselorGame2 /></>} />
-            <Route path="/assessment/academic-counselor/game-3" element={<><MobileBlockGate /><AcademicCounselorGame3 /></>} />
-            <Route path="/assessment/academic-counselor/game-4" element={<><MobileBlockGate /><AcademicCounselorGame4 /></>} />
-            <Route path="/assessment/academic-counselor/filter-1" element={<><MobileBlockGate /><AcademicCounselorFilter1 /></>} />
-            <Route path="/assessment/academic-counselor/filter-2" element={<><MobileBlockGate /><AcademicCounselorFilter2 /></>} />
-            <Route path="/assessment/academic-counselor/filter-3" element={<><MobileBlockGate /><AcademicCounselorFilter3 /></>} />
+            <Route path="/assessment/academic-counselor/start" element={<AcademicCounselorStart />} />
+            <Route path="/assessment/academic-counselor/game-1" element={<AcademicCounselorGame1 />} />
+            <Route path="/assessment/academic-counselor/game-2" element={<AcademicCounselorGame2 />} />
+            <Route path="/assessment/academic-counselor/game-3" element={<AcademicCounselorGame3 />} />
+            <Route path="/assessment/academic-counselor/game-4" element={<AcademicCounselorGame4 />} />
+            <Route path="/assessment/academic-counselor/filter-1" element={<AcademicCounselorFilter1 />} />
+            <Route path="/assessment/academic-counselor/filter-2" element={<AcademicCounselorFilter2 />} />
+            <Route path="/assessment/academic-counselor/filter-3" element={<AcademicCounselorFilter3 />} />
             <Route path="/assessment/academic-counselor/results" element={<AcademicCounselorResults />} />
             <Route path="/assessment/academic-counselor/profile" element={<AcademicCounselorProfile />} />
             <Route path="/assessment/academic-counselor/signup" element={<CandidateSignup />} />
