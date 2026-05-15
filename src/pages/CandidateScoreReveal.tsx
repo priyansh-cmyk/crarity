@@ -226,57 +226,116 @@ export default function CandidateScoreReveal() {
 
         {qualified ? (
           <>
-            {/* Green badge */}
-            <div
-              style={{
-                display: "inline-block",
-                background: T.green,
-                color: T.text,
-                fontWeight: 700,
-                fontSize: 14,
-                padding: "6px 18px",
-                borderRadius: 999,
-                marginBottom: 20,
-                ...fadeUp(showText),
-              }}
-            >
-              You passed!
+            {/* "You passed" chip */}
+            <div style={{ ...fadeUp(showText) }}>
+              <span
+                style={{
+                  display: "inline-block",
+                  background: T.green,
+                  color: T.text,
+                  fontWeight: 700,
+                  fontSize: 13,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  padding: "5px 14px",
+                  borderRadius: 999,
+                  marginBottom: 20,
+                }}
+              >
+                You passed
+              </span>
             </div>
 
-            {/* CTA button */}
+            {/* Heading + subtext */}
+            <div style={{ ...fadeUp(showText), transitionDelay: "60ms" }}>
+              <div
+                style={{
+                  fontSize: "clamp(22px, 5vw, 30px)",
+                  fontWeight: 700,
+                  letterSpacing: "-0.02em",
+                  marginBottom: 10,
+                  color: T.text,
+                }}
+              >
+                Congratulations!
+              </div>
+              <div
+                style={{
+                  fontSize: 16,
+                  color: T.dim,
+                  lineHeight: 1.6,
+                  maxWidth: 360,
+                  margin: "0 auto 32px",
+                }}
+              >
+                You passed - complete your profile to get discovered by employers on Crarity.
+              </div>
+            </div>
+
+            {/* CTA */}
             <div style={{ ...fadeScale(showButton) }}>
               <a
                 href={`/assessment/academic-counselor/profile?session=${sessionId ?? ""}`}
                 style={{
-                  display: "inline-block",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 10,
                   background: T.text,
                   color: "#fff",
                   textDecoration: "none",
                   borderRadius: 999,
-                  padding: "14px 28px",
-                  fontSize: 16,
+                  paddingLeft: 24,
+                  paddingRight: 8,
+                  paddingTop: 12,
+                  paddingBottom: 12,
+                  fontSize: 15,
                   fontWeight: 600,
                   fontFamily: T.sans,
-                  marginTop: 8,
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.14)",
                 }}
               >
-                Congratulations! You passed - complete your profile to get redirected to dashboard!
+                Complete your profile
+                <span
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    background: T.green,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    fontSize: 16,
+                  }}
+                >
+                  →
+                </span>
               </a>
             </div>
           </>
         ) : (
-          <div
-            style={{
-              fontSize: 17,
-              color: T.dim,
-              lineHeight: 1.6,
-              maxWidth: 440,
-              margin: "0 auto",
-              ...fadeUp(showText),
-            }}
-          >
-            Thank you for taking the assessment. We'll be in touch if anything changes.
+          <div style={{ ...fadeUp(showText) }}>
+            <div
+              style={{
+                fontSize: "clamp(20px, 4vw, 26px)",
+                fontWeight: 700,
+                letterSpacing: "-0.02em",
+                marginBottom: 12,
+              }}
+            >
+              Thanks for taking the assessment
+            </div>
+            <div
+              style={{
+                fontSize: 16,
+                color: T.dim,
+                lineHeight: 1.6,
+                maxWidth: 380,
+                margin: "0 auto",
+              }}
+            >
+              We'll review your results and reach out if there's a match. Keep an eye on your inbox.
+            </div>
           </div>
         )}
       </div>
