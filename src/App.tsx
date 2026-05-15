@@ -50,6 +50,7 @@ import DebugPanel from "./components/DebugPanel";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import AssessmentTrack from "./pages/AssessmentTrack";
+import CandidateScoreReveal from "./pages/CandidateScoreReveal";
 import ErrorBoundary from "./components/ErrorBoundary";
 import StagingBanner from "./components/StagingBanner";
 import StagingNav from "./components/StagingNav";
@@ -92,7 +93,7 @@ const App = () => (
             <Route path="/assessment/academic-counselor/filter-1" element={<><MobileBlockGate /><AcademicCounselorFilter1 /></>} />
             <Route path="/assessment/academic-counselor/filter-2" element={<><MobileBlockGate /><AcademicCounselorFilter2 /></>} />
             <Route path="/assessment/academic-counselor/filter-3" element={<><MobileBlockGate /><AcademicCounselorFilter3 /></>} />
-            <Route path="/assessment/academic-counselor/results" element={<><MobileBlockGate /><AcademicCounselorResults /></>} />
+            <Route path="/assessment/academic-counselor/results" element={<AcademicCounselorResults />} />
             <Route path="/assessment/academic-counselor/profile" element={<AcademicCounselorProfile />} />
             <Route path="/assessment/academic-counselor/signup" element={<CandidateSignup />} />
             <Route path="/assessment/academic-counselor/login" element={<CandidateLogin />} />
@@ -113,6 +114,7 @@ const App = () => (
             <Route path="/admin/scoring-queue" element={<AdminProtectedRoute><AdminScores /></AdminProtectedRoute>} />
             <Route path="/admin/health" element={<AdminProtectedRoute><AdminHealth /></AdminProtectedRoute>} />
             <Route path="/assessment/track/:sessionId" element={<AssessmentTrack />} />
+            <Route path="/results" element={<CandidateScoreReveal />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
