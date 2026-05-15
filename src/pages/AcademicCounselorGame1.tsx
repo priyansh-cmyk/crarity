@@ -145,7 +145,7 @@ function InfoLine({ icon, children }: { icon: React.ReactNode; children: React.R
   return (
     <div style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, color: T.text, lineHeight: 1.45 }}>
       <span style={{ color: T.dim, marginTop: 2, flexShrink: 0 }}>{icon}</span>
-      <span style={{ flex: 1 }}>{children}</span>
+      <span className="g1-card-detail" style={{ flex: 1 }}>{children}</span>
     </div>
   );
 }
@@ -397,6 +397,20 @@ export default function AcademicCounselorGame1() {
         </div>
       )}
 
+      <style>{`
+        @media (max-width: 640px) {
+          .g1-header-inner { padding: 12px 16px !important; }
+          .g1-question { padding: 12px 16px 10px !important; font-size: 13px !important; }
+          .g1-grid { padding: 12px 16px 120px !important; gap: 10px !important; }
+          .g1-card { padding: 14px !important; }
+          .g1-card-name { font-size: 14px !important; }
+          .g1-card-detail { font-size: 12px !important; }
+          .g1-footer { padding: 12px 16px !important; }
+          .g1-timer { font-size: 14px !important; }
+          .g1-submit-btn { font-size: 14px !important; padding-left: 16px !important; }
+        }
+      `}</style>
+
       {/* Sticky top bar */}
       <header
         style={{
@@ -410,6 +424,7 @@ export default function AcademicCounselorGame1() {
         }}
       >
         <div
+          className="g1-header-inner"
           style={{
             maxWidth: 900,
             margin: "0 auto",
@@ -429,6 +444,7 @@ export default function AcademicCounselorGame1() {
             </span>
           </div>
           <div
+            className="g1-timer"
             style={{
               display: "flex",
               alignItems: "center",
@@ -445,6 +461,7 @@ export default function AcademicCounselorGame1() {
           </div>
         </div>
         <div
+          className="g1-question"
           style={{
             maxWidth: 900,
             margin: "0 auto",
@@ -460,6 +477,7 @@ export default function AcademicCounselorGame1() {
 
       {/* Cards */}
       <main
+        className="g1-grid"
         style={{
           maxWidth: 900,
           margin: "0 auto",
@@ -475,6 +493,7 @@ export default function AcademicCounselorGame1() {
             <button
               key={lead.id}
               onClick={() => toggle(lead.id)}
+              className="g1-card"
               style={{
                 position: "relative",
                 textAlign: "left",
@@ -512,7 +531,7 @@ export default function AcademicCounselorGame1() {
 
               {/* Header */}
               <div style={{ marginBottom: 12, paddingRight: 36 }}>
-                <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.01em", marginBottom: 4 }}>
+                <div className="g1-card-name" style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.01em", marginBottom: 4 }}>
                   {lead.name}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: T.dim }}>
@@ -551,6 +570,7 @@ export default function AcademicCounselorGame1() {
 
       {/* Sticky submit bar */}
       <div
+        className="g1-footer"
         style={{
           position: "fixed",
           left: 0,
@@ -577,6 +597,7 @@ export default function AcademicCounselorGame1() {
           <button
             onClick={() => submit(false)}
             disabled={submitting || selected.length !== 3}
+            className="g1-submit-btn"
             style={{
               display: "inline-flex",
               alignItems: "center",

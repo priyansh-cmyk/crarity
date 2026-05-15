@@ -276,7 +276,12 @@ export default function AcademicCounselorStart() {
         minHeight: "100vh", background: "#f7f6f3", display: "flex", alignItems: "center",
         justifyContent: "center", fontFamily: T.sans, padding: 24,
       }}>
-        <div style={{
+        <style>{`
+          @media (max-width: 640px) {
+            .start-resume-card { padding: 32px 24px !important; }
+          }
+        `}</style>
+        <div className="start-resume-card" style={{
           background: "#fff", border: "1px solid #e5e5e5", borderRadius: 20,
           padding: "48px 40px", maxWidth: 480, width: "100%",
         }}>
