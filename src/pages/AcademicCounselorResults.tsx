@@ -29,8 +29,8 @@ export default function AcademicCounselorResults() {
   const [session, setSession] = useState<SessionRow | null>(null);
 
   useEffect(() => {
-    if (debugMode || IS_STAGING) {
-      setSession({ id: "demo", name: "Demo Candidate", email: "demo@example.com" });
+    if (debugMode || (IS_STAGING && !sessionId)) {
+      setSession({ id: "demo", name: "Demo Candidate", email: "you@youremail.com" });
       return;
     }
     if (!sessionId) return;

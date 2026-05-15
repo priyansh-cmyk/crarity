@@ -42,7 +42,8 @@ export default function AcademicCounselorAbout() {
         .ab-headline { font-size: 64px; line-height: 1.0; }
         @media (max-width: 640px) {
           .ab-headline { font-size: 40px; }
-          .ab-brand { left: 24px !important; }
+          .ab-brand { left: 50% !important; transform: translateX(-50%) !important; }
+          .ab-back { display: none !important; }
         }
       `}</style>
 
@@ -64,6 +65,7 @@ export default function AcademicCounselorAbout() {
 
       {/* Back button */}
       <button
+        className="ab-back"
         onClick={() => fadeNavigate("/assessment/academic-counselor")}
         style={{
           position: "absolute",
