@@ -8,8 +8,8 @@ import { FilterPageShell, PillButton } from "@/components/assessment/FilterPageS
 export default function AcademicCounselorFilter2() {
   const [params] = useSearchParams();
   const sessionId = params.get("session") ?? "";
-  const roleId = params.get("role");
-  const roleQs = roleId ? `&role=${roleId}` : "";
+  const roleId = params.get("role_id");
+  const roleQs = roleId ? `&role_id=${roleId}` : "";
   const { fadeNavigate, pageStyle } = useFadeNavigate();
   const { toast } = useToast();
 

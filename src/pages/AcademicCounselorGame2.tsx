@@ -554,11 +554,11 @@ export default function AcademicCounselorGame2() {
                   </div>
                   <div>
                     <div style={{ fontSize: 16, fontWeight: 600, color: T.green, lineHeight: 1.2 }}>₹5,000 off</div>
-                    <div style={{ fontSize: 12, color: T.dim, marginTop: 2 }}>Early Bird — before June 30</div>
+                    <div style={{ fontSize: 12, color: T.dim, marginTop: 2 }}>Early Bird - before June 30</div>
                   </div>
                   <div>
                     <div style={{ fontSize: 16, fontWeight: 600, color: T.green, lineHeight: 1.2 }}>10% off</div>
-                    <div style={{ fontSize: 12, color: T.dim, marginTop: 2 }}>Sibling — for 2nd child</div>
+                    <div style={{ fontSize: 12, color: T.dim, marginTop: 2 }}>Sibling - for 2nd child</div>
                   </div>
                 </div>
 
