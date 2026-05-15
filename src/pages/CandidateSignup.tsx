@@ -154,10 +154,13 @@ export default function CandidateSignup() {
       <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
         <div style={{ width: "100%", maxWidth: 440 }}>
           <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 8, textAlign: "center" }}>
-            Create your account
+            One last step
           </h1>
-          <p style={{ fontSize: 14, color: T.dim, textAlign: "center", marginBottom: 32 }}>
-            Track interview invitations and manage your profile
+          <p style={{ fontSize: 14, color: T.dim, textAlign: "center", marginBottom: 8, lineHeight: 1.6 }}>
+            We'd like you to log in so we can save your scores and you can always come back to check your application status and interview invitations.
+          </p>
+          <p style={{ fontSize: 13, color: T.dim, textAlign: "center", marginBottom: 28, opacity: 0.7 }}>
+            It only takes a few seconds.
           </p>
 
           <button
