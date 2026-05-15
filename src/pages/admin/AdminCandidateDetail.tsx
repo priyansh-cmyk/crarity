@@ -445,10 +445,19 @@ function McqDetail({ data }: { data: Record<string, unknown> }) {
 
 function VoiceDetail({ data }: { data: Record<string, unknown> }) {
   const recordings = (data.recordings as Array<{ label?: string; url?: string; duration?: number; type?: string; created_at?: string }>) ?? [];
-  const audioUrl = data.audio_url as string | undefined;
+  const audioUrl = (data.audio_url || data.pitch_recording_url) as string | undefined;
+  const objectionUrl = (data.objection2_recording_url) as string | undefined;
   const transcript = data.transcript as string | undefined;
   const feedback = data.feedback as string | undefined;
-  const items = recordings.length > 0 ? recordings : audioUrl ? [{ label: "Recording", url: audioUrl }] : [];
+
+  // Build items: prefer explicit recordings array, else construct from known fields
+  const items: Array<{ label: string; url: string; duration?: number; type?: string }> =
+    recordings.length > 0
+      ? recordings.map((r, i) => ({ label: r.label ?? `Recording ${i + 1}`, url: r.url ?? "", duration: r.duration, type: r.type }))
+      : [
+          audioUrl ? { label: "Pitch recording", url: audioUrl, duration: data.audio_duration as number | undefined } : null,
+          objectionUrl ? { label: "Objection handling recording", url: objectionUrl, duration: data.objection2_duration as number | undefined } : null,
+        ].filter(Boolean) as Array<{ label: string; url: string; duration?: number }>;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {items.length === 0 && <div style={{ fontSize: 14, color: T.dim }}>No recordings.</div>}
@@ -482,8 +491,8 @@ function VoiceDetail({ data }: { data: Record<string, unknown> }) {
 }
 
 function TextDetail({ data }: { data: Record<string, unknown> }) {
-  const turn1 = (data.refund_turn1_response as string) ?? (data.turn1 as string) ?? "";
-  const turn2 = (data.refund_turn2_response as string) ?? (data.turn2 as string) ?? "";
+  const turn1 = (data.turn1_response as string) || (data.refund_turn1_response as string) || (data.turn1 as string) || "";
+  const turn2 = (data.turn2_response as string) || (data.refund_turn2_response as string) || (data.turn2 as string) || "";
   const single = (data.response_text as string) ?? (data.answer as string) ?? "";
   const feedback = data.feedback as string | undefined;
   const turns = (turn1 || turn2) ? [turn1, turn2].filter(Boolean) : single ? [single] : [];
