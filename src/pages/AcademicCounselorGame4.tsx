@@ -23,18 +23,8 @@ const T = {
   sans: "'Satoshi', 'Inter', system-ui, sans-serif",
 };
 
-type Phase = "context" | "main" | "scoring" | "saving";
+type Phase = "context" | "main" | "saving";
 type Turn = 1 | 2;
-
-type Scores = {
-  empathy: number;
-  policy_communication: number;
-  alternatives: number;
-  threat_handling: number;
-  professionalism: number;
-  total_score: number;
-  feedback: string;
-};
 
 const TIME_LIMIT = 4 * 60;
 const CHAR_LIMIT = 300;
@@ -164,50 +154,6 @@ export default function AcademicCounselorGame4() {
       return;
     }
 
-    setPhase("scoring");
-
-    const combined = [t1 ? `Turn 1 reply:\n${t1}` : "", t2 ? `Turn 2 reply (after threat):\n${t2}` : ""]
-      .filter(Boolean)
-      .join("\n\n");
-
-    let scores: Scores | null = null;
-
-    if (combined.length === 0) {
-      scores = {
-        empathy: 0,
-        policy_communication: 0,
-        alternatives: 0,
-        threat_handling: 0,
-        professionalism: 0,
-        total_score: 0,
-        feedback: auto ? "No response submitted (time expired)." : "No response submitted.",
-      };
-    } else {
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const res = await supabase.functions.invoke("score-counselor-refund", {
-            body: { response: combined },
-          });
-          if (res.error) throw new Error(res.error.message || "scoring failed");
-          scores = res.data as Scores;
-          break;
-        } catch {
-          await new Promise((r) => setTimeout(r, 600));
-        }
-      }
-      if (!scores) {
-        scores = {
-          empathy: 0,
-          policy_communication: 0,
-          alternatives: 0,
-          threat_handling: 0,
-          professionalism: 0,
-          total_score: 5,
-          feedback: "Provisional score — scoring service unavailable. Flagged for manual review.",
-        };
-      }
-    }
-
     setPhase("saving");
     try {
       const { data: row } = await supabase
@@ -219,9 +165,11 @@ export default function AcademicCounselorGame4() {
       const prev = (row?.scores as Record<string, unknown>) ?? {};
       const game1 = (prev as { game1?: { score?: number } }).game1?.score ?? 0;
       const game2 = (prev as { game2?: { total_score?: number } }).game2?.total_score ?? 0;
-      const game3 = (prev as { game3?: { total_score?: number } }).game3?.total_score ?? 0;
-      const game4 = scores.total_score ?? 0;
-      const total = game1 + game2 + game3 + game4;
+      const total = game1 + game2;
+
+      const combined = [t1 ? `Turn 1 reply:\n${t1}` : "", t2 ? `Turn 2 reply (after threat):\n${t2}` : ""]
+        .filter(Boolean)
+        .join("\n\n");
 
       const merged = {
         ...prev,
@@ -233,15 +181,8 @@ export default function AcademicCounselorGame4() {
           response_text: combined,
           response_length: combined.length,
           time_taken: elapsed,
-          rubric_scores: {
-            empathy: scores.empathy,
-            policy_communication: scores.policy_communication,
-            alternatives: scores.alternatives,
-            threat_handling: scores.threat_handling,
-            professionalism: scores.professionalism,
-          },
-          total_score: scores.total_score,
-          feedback: scores.feedback,
+          total_score: 0,
+          feedback: "Pending manual review.",
           auto_submitted: auto,
           timestamp: new Date().toISOString(),
         },
@@ -326,7 +267,7 @@ export default function AcademicCounselorGame4() {
     );
   }
 
-  if (phase === "scoring" || phase === "saving") {
+  if (phase === "saving") {
     return (
       <div
         style={{
@@ -346,11 +287,7 @@ export default function AcademicCounselorGame4() {
       >
         <style>{`@keyframes g4pulse { 0%,100% { opacity: 0.5 } 50% { opacity: 1 } }`}</style>
         <div style={{ animation: "g4pulse 1.6s ease-in-out infinite" }}>
-          {autoSubmitMsg
-            ? "Time's up! Submitting your response…"
-            : phase === "scoring"
-              ? "Analyzing your response…"
-              : "Loading your results…"}
+          {autoSubmitMsg ? "Time's up! Submitting your response…" : "Saving your answers…"}
         </div>
       </div>
     );

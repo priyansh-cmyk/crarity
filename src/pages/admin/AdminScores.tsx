@@ -301,6 +301,14 @@ function ReviewModal({ session, onClose, onSaved }: { session: Session; onClose:
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success(`Scoring saved for ${session.name || "candidate"}`);
+    // Fire score notification email — best effort
+    supabase.functions.invoke("notify-scored", {
+      body: {
+        session_id: session.id,
+        candidate_email: session.email,
+        candidate_name: session.name,
+      },
+    }).catch(() => {});
     await onSaved();
   };
 

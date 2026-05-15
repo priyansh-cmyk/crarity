@@ -21,18 +21,8 @@ const T = {
 
 type Step = "pitch" | "objection2";
 type SubPhase = "choose" | "ready" | "recording" | "playback";
-type Phase = "context" | "step" | "scoring" | "saving" | "unsupported";
+type Phase = "context" | "step" | "saving" | "unsupported";
 type RecordKind = "voice" | "video";
-
-type Scores = {
-  opening_context: number;
-  price_handling: number;
-  urgency: number;
-  cta: number;
-  tone: number;
-  total_score: number;
-  feedback: string;
-};
 
 type RoundResult = {
   kind: RecordKind;
@@ -54,19 +44,6 @@ function fmtTime(s: number) {
   const m = Math.floor(s / 60);
   const sec = s % 60;
   return `${m}:${sec.toString().padStart(2, "0")}`;
-}
-
-async function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      const idx = result.indexOf(",");
-      resolve(idx >= 0 ? result.slice(idx + 1) : result);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
 }
 
 function pickAudioMime(): string {
@@ -137,8 +114,6 @@ export default function AcademicCounselorGame3() {
     pitch: null,
     objection2: null,
   });
-  const [pitchScores, setPitchScores] = useState<Scores | null>(null);
-  const [pitchTranscript, setPitchTranscript] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [unsupportedReason, setUnsupportedReason] = useState<string>("");
@@ -426,8 +401,8 @@ export default function AcademicCounselorGame3() {
     }
 
     if (step === "pitch") {
-      // Score the initial pitch (existing flow: transcribe + score)
-      setPhase("scoring");
+      // Upload the pitch recording, then go directly to objection step
+      setPhase("saving");
       let uploadedUrl: string;
       try {
         uploadedUrl = await uploadCurrent();
@@ -442,35 +417,9 @@ export default function AcademicCounselorGame3() {
         setSubPhase("playback");
         return;
       }
-      let transcript = "";
-      let scores: Scores | null = null;
-      try {
-        const b64 = await blobToBase64(mediaBlob);
-        const transcribeRes = await supabase.functions.invoke("transcribe-pitch", {
-          body: { audio_base64: b64, mime_type: mediaMime },
-        });
-        if (transcribeRes.error) throw new Error(transcribeRes.error.message || "Transcription failed");
-        transcript = (transcribeRes.data as { transcript?: string })?.transcript ?? "";
-
-        const scoreRes = await supabase.functions.invoke("score-counselor-pitch", {
-          body: { transcript },
-        });
-        if (scoreRes.error) throw new Error(scoreRes.error.message || "Scoring failed");
-        scores = scoreRes.data as Scores;
-      } catch (err) {
-        console.error("[Game3] Pitch scoring failed", err);
-        toast({
-          title: "Couldn't analyze the pitch",
-          description: "We'll keep your recording and continue anyway.",
-          variant: "destructive",
-        });
-      }
-
-      setPitchScores(scores);
-      setPitchTranscript(transcript);
       setResults((r) => ({
         ...r,
-        pitch: { kind: recordKind, url: uploadedUrl, duration: recordedSecs, transcript },
+        pitch: { kind: recordKind, url: uploadedUrl, duration: recordedSecs },
       }));
       console.log("[Game3] Routing to objection2");
       goToStep("objection2");
@@ -478,7 +427,7 @@ export default function AcademicCounselorGame3() {
     }
 
     // Objection2 — upload, persist, continue.
-    setPhase("scoring");
+    setPhase("saving");
     let uploadedUrl: string;
     try {
       uploadedUrl = await uploadCurrent();
@@ -531,18 +480,10 @@ export default function AcademicCounselorGame3() {
           pitch_recording_url: finalResults.pitch?.url ?? null,
           audio_duration: finalResults.pitch?.duration ?? 0,
           audio_url: finalResults.pitch?.url ?? null,
-          transcript: pitchTranscript,
-          rubric_scores: pitchScores
-            ? {
-                opening_context: pitchScores.opening_context,
-                price_handling: pitchScores.price_handling,
-                urgency: pitchScores.urgency,
-                cta: pitchScores.cta,
-                tone: pitchScores.tone,
-              }
-            : null,
-          total_score: pitchScores?.total_score ?? 0,
-          feedback: pitchScores?.feedback ?? "",
+          transcript: "",
+          rubric_scores: null,
+          total_score: 0,
+          feedback: "Pending manual review.",
           // Objection round
           objection2_recording_type: finalResults.objection2?.kind ?? null,
           objection2_recording_url: finalResults.objection2?.url ?? null,
@@ -685,19 +626,15 @@ export default function AcademicCounselorGame3() {
     );
   }
 
-  if (phase === "scoring") {
+  if (phase === "saving") {
     return (
       <CenterMessage style={pageStyle}>
         <style>{`@keyframes g3pulse { 0%,100% { opacity: 0.5 } 50% { opacity: 1 } }`}</style>
         <div style={{ animation: "g3pulse 1.6s ease-in-out infinite" }}>
-          {step === "pitch" ? "Analyzing your pitch…" : "Saving your response…"}
+          Saving your response…
         </div>
       </CenterMessage>
     );
-  }
-
-  if (phase === "saving") {
-    return <CenterMessage style={pageStyle}>Loading next task…</CenterMessage>;
   }
 
   if (phase === "unsupported") {
