@@ -145,7 +145,7 @@ export default function CandidateSignup() {
 
   return (
     <div style={{ minHeight: "100vh", background: T.cream, fontFamily: T.sans, color: T.text, display: "flex", flexDirection: "column" }}>
-      <header style={{ padding: "24px 40px" }}>
+      <header style={{ padding: "24px 40px", textAlign: "center" }}>
         <Link to="/" style={{ fontFamily: T.sans, fontWeight: 700, fontSize: 24, color: T.text, textDecoration: "none", letterSpacing: "-0.02em" }}>
           crarity
         </Link>
