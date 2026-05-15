@@ -1,7 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFadeNavigate } from "@/hooks/useFadeNavigate";
-import MobileBlockOverlay, { isMobileDevice } from "@/components/MobileBlockOverlay";
 import logoAllen from "@/assets/logo-allen.png";
 import logoAppseconnect from "@/assets/logo-appseconnect.png";
 import logoUnext from "@/assets/logo-unext.png";
@@ -30,14 +29,9 @@ const ROLE_BULLETS = [
 export default function AcademicCounselorAssessment() {
   const { fadeNavigate, pageStyle } = useFadeNavigate();
   const [logoIndex, setLogoIndex] = useState(0);
-  const [showMobileBlock, setShowMobileBlock] = useState(false);
 
   const handleStart = () => {
-    if (isMobileDevice()) {
-      setShowMobileBlock(true);
-    } else {
-      fadeNavigate("/assessment/academic-counselor/about");
-    }
+    fadeNavigate("/assessment/academic-counselor/about");
   };
 
   useEffect(() => {
@@ -49,7 +43,6 @@ export default function AcademicCounselorAssessment() {
 
   return (
     <>
-      {showMobileBlock && <MobileBlockOverlay onClose={() => setShowMobileBlock(false)} />}
       <div
         className="ac-page"
         style={{
@@ -83,11 +76,13 @@ export default function AcademicCounselorAssessment() {
           .ac-cta-wrap { width: 100% !important; margin-top: 32px !important; }
           .ac-cta { width: 100% !important; justify-content: space-between !important; padding: 14px 14px 14px 24px !important; font-size: 16px !important; }
           .ac-footer { position: static !important; margin-top: 48px; padding: 0 16px; }
+          .ac-logo { left: 50% !important; transform: translateX(-50%) !important; text-align: center; }
         }
       `}</style>
 
         {/* Brand mark */}
         <div
+          className="ac-logo"
           style={{
             position: "absolute",
             top: 32,

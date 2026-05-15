@@ -1,7 +1,5 @@
 import { ArrowRight, ArrowLeft } from "lucide-react";
-import { useEffect, useState } from "react";
 import { useFadeNavigate } from "@/hooks/useFadeNavigate";
-import MobileBlockOverlay, { isMobileDevice } from "@/components/MobileBlockOverlay";
 
 const T = {
   white: "#ffffff",
@@ -21,15 +19,6 @@ const CHALLENGES = [
 
 export default function AcademicCounselorAbout() {
   const { fadeNavigate, pageStyle } = useFadeNavigate();
-  const [blocked, setBlocked] = useState(false);
-
-  useEffect(() => {
-    if (isMobileDevice()) setBlocked(true);
-  }, []);
-
-  if (blocked) {
-    return <MobileBlockOverlay onClose={() => fadeNavigate("/assessment/academic-counselor")} />;
-  }
 
   return (
     <div
