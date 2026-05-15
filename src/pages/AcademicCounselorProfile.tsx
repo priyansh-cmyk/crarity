@@ -199,14 +199,17 @@ export default function AcademicCounselorProfile() {
         .acp-section-right { justify-self: start; text-align: left; }
         @media (max-width: 768px) {
           .acp-grid { grid-template-columns: 1fr !important; gap: 0 !important; align-items: stretch !important; }
-          .acp-section { min-height: 0 !important; display: block !important; }
+          .acp-section { min-height: 0 !important; display: block !important; max-width: 100% !important; }
+          .acp-section-left { text-align: left !important; justify-self: start !important; }
+          .acp-section-left .acp-pills { justify-content: flex-start !important; }
           .acp-divider { display: none !important; }
           .acp-divider-mobile { display: block !important; height: 1px; background: #e5e5e5; margin: 40px 0; }
           .acp-submit { width: 100% !important; min-width: 0 !important; }
+          .acp-container { padding-bottom: 100px !important; }
         }
         @media (max-width: 640px) {
-          .acp-container { padding: 32px 24px !important; }
-          .acp-heading { font-size: 32px !important; }
+          .acp-container { padding: 32px 24px 100px !important; }
+          .acp-heading { font-size: 28px !important; }
         }
       `}</style>
 
