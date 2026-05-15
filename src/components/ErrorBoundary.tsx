@@ -1,4 +1,5 @@
 import React from "react";
+import { RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props { children: React.ReactNode; }
@@ -63,20 +64,19 @@ export default class ErrorBoundary extends React.Component<Props, State> {
             width: 56,
             height: 56,
             borderRadius: "50%",
-            background: T.green,
+            background: "#f4f3f0",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             margin: "0 auto 24px",
-            fontSize: 28,
           }}>
-            ⚡
+            <RefreshCw size={24} color={T.text} strokeWidth={2} />
           </div>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: T.text, margin: "0 0 12px" }}>
             Something went wrong
           </h1>
           <p style={{ fontSize: 15, color: T.dim, lineHeight: 1.6, margin: "0 0 32px" }}>
-            An unexpected error occurred. Your progress has been saved — refresh to continue.
+            An unexpected error occurred. Your progress has been saved - refresh to continue.
           </p>
           <button
             onClick={() => window.location.reload()}

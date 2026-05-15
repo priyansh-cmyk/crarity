@@ -584,7 +584,7 @@ export default function AcademicCounselorGame3() {
         <style>{`
           @keyframes g3FadeUp { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
           @media (max-width: 640px) {
-            .g3-wrap { padding: 24px 20px !important; align-items: flex-start !important; padding-top: 40px !important; }
+            .g3-wrap { padding: 24px 20px !important; text-align: center !important; }
             .g3-heading { font-size: 32px !important; }
             .g3-body-text { font-size: 16px !important; }
             .g3-objection-box { padding: 16px !important; font-size: 14px !important; margin-bottom: 24px !important; }
@@ -708,7 +708,7 @@ export default function AcademicCounselorGame3() {
         @keyframes g3FadeUp { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
         @keyframes g3-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
         @media (max-width: 640px) {
-          .g3-wrap { padding: 24px 20px !important; align-items: flex-start !important; padding-top: 40px !important; }
+          .g3-wrap { padding: 24px 20px !important; text-align: center !important; }
           .g3-heading { font-size: 32px !important; }
           .g3-body-text { font-size: 16px !important; }
           .g3-objection-box { padding: 16px !important; font-size: 14px !important; margin-bottom: 24px !important; }
