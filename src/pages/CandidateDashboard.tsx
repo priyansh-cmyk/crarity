@@ -372,11 +372,17 @@ export default function CandidateDashboard() {
         .cr-iv-row { display: grid; grid-template-columns: 2fr 2fr 1fr 1.5fr; gap: 16px; align-items: center; }
         .cr-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
         .cr-pipeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+        .cr-ps-connector-v { display: none; }
         @media (max-width: 640px) {
           .cr-grid-2 { grid-template-columns: 1fr !important; }
           .cr-iv-row { grid-template-columns: 1fr !important; }
           .cr-iv-head { display: none !important; }
-          .cr-pipeline { grid-template-columns: 1fr 1fr !important; }
+          .cr-pipeline { display: flex !important; flex-direction: column !important; gap: 0 !important; }
+          .cr-ps-wrap { flex-direction: row !important; align-items: flex-start !important; justify-content: flex-start !important; gap: 0 !important; }
+          .cr-ps-icon-col { display: flex !important; flex-direction: column !important; align-items: center !important; flex-shrink: 0 !important; width: 48px !important; }
+          .cr-ps-connector-h { display: none !important; }
+          .cr-ps-connector-v { display: block !important; width: 1.5px !important; flex: 1 !important; min-height: 28px !important; margin: 0 auto !important; }
+          .cr-ps-labels { text-align: left !important; margin-top: 10px !important; margin-left: 16px !important; padding: 0 !important; }
         }
       `}</style>
 
@@ -602,47 +608,58 @@ function PipelineStep({ step, index, total }: { step: PipelineStep; index: numbe
   const isActive = state === "active";
   const isPending = state === "pending";
 
+  const connectorColor = isDone ? T.text : "#e8e3d8";
+
   return (
-    <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
-      {/* Connector line — sits behind the icon */}
+    <div className="cr-ps-wrap" style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
+
+      {/* Desktop: horizontal connector behind icon */}
       {!isLast && (
-        <div style={{
+        <div className="cr-ps-connector-h" style={{
           position: "absolute",
           top: 24,
           left: "calc(50% + 26px)",
           right: "calc(-50% + 26px)",
           height: 1.5,
-          background: isDone ? T.text : "#e8e3d8",
+          background: connectorColor,
           zIndex: 0,
         }} />
       )}
 
-      {/* Icon circle */}
-      <div
-        style={{
-          width: 48,
-          height: 48,
-          borderRadius: "50%",
-          background: isDone ? T.text : isActive ? T.green : "#f4f3f0",
-          border: isActive ? `2px solid ${T.text}` : isDone ? "none" : `1.5px solid #e8e3d8`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-          position: "relative",
-          zIndex: 1,
-          transition: "background 300ms",
-        }}
-      >
-        <Icon
-          size={20}
-          color={isDone ? "#fff" : isActive ? T.text : "#c0bdb6"}
-          strokeWidth={isDone ? 2 : 1.75}
-        />
+      {/* Mobile: icon + vertical connector in a column */}
+      <div className="cr-ps-icon-col" style={{ display: "contents" }}>
+        {/* Icon circle */}
+        <div
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: "50%",
+            background: isDone ? T.text : isActive ? T.green : "#f4f3f0",
+            border: isActive ? `2px solid ${T.text}` : isDone ? "none" : `1.5px solid #e8e3d8`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            position: "relative",
+            zIndex: 1,
+            transition: "background 300ms",
+          }}
+        >
+          <Icon
+            size={20}
+            color={isDone ? "#fff" : isActive ? T.text : "#c0bdb6"}
+            strokeWidth={isDone ? 2 : 1.75}
+          />
+        </div>
+
+        {/* Mobile-only vertical connector below icon */}
+        {!isLast && (
+          <div className="cr-ps-connector-v" style={{ background: connectorColor }} />
+        )}
       </div>
 
       {/* Labels */}
-      <div style={{ textAlign: "center", marginTop: 14, paddingLeft: 4, paddingRight: 4 }}>
+      <div className="cr-ps-labels" style={{ textAlign: "center", marginTop: 14, paddingLeft: 4, paddingRight: 4 }}>
         <div style={{
           fontSize: 13,
           fontWeight: 700,
