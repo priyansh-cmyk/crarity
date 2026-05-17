@@ -87,6 +87,7 @@ export default function AcademicCounselorStart() {
   const [pinError, setPinError] = useState("");
   const [pinLoading, setPinLoading] = useState(false);
   const [isReturningUser, setIsReturningUser] = useState(false);
+  const [hasExistingAccount, setHasExistingAccount] = useState(false);
 
   // Step URL map for resume navigation
   const STEP_URLS: Record<string, string> = {
@@ -211,17 +212,19 @@ export default function AcademicCounselorStart() {
     }
 
     if (result.created || result.exists) {
-      // Sign in (works for both new and existing users)
+      // Try signing in with the PIN
       const { error: signInError } = await signInWithEmail(email, pin);
       if (!signInError) {
+        // PIN matched — new or returning PIN user
         setIsReturningUser(!!result.exists);
         if (resumeSession) { setOnPinStep(false); setPinLoading(false); return; }
         proceed();
         return;
       }
-      // Wrong PIN for existing user
       if (result.exists) {
-        setPinError("Incorrect PIN. Please try again.");
+        // Account exists but PIN is wrong — could be Google/email auth from old flow
+        // Show "you already have an account" state instead of "wrong PIN"
+        setHasExistingAccount(true);
         setPinLoading(false);
         return;
       }
@@ -426,6 +429,37 @@ export default function AcademicCounselorStart() {
           transform: visible ? "translateY(0)" : "translateY(8px)",
           transition: "opacity 200ms ease, transform 200ms ease",
         }}>
+
+          {/* Existing account — different auth method (Google / old password) */}
+          {hasExistingAccount ? (
+            <>
+              <h1 style={{ fontSize: "clamp(22px, 6vw, 30px)", fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 12px" }}>
+                You already have an account
+              </h1>
+              <p style={{ fontSize: 15, color: T.dim, lineHeight: 1.6, margin: "0 0 32px" }}>
+                This email is linked to an existing Crarity account. Log in and your assessment progress will be saved automatically.
+              </p>
+              <a
+                href={`/assessment/academic-counselor/login${partialSessionId ? `?session=${partialSessionId}` : ""}`}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  background: T.text, color: "#fff", textDecoration: "none",
+                  borderRadius: 99, padding: "14px 20px", fontSize: 15, fontWeight: 600,
+                  fontFamily: T.sans, marginBottom: 12,
+                }}
+              >
+                Log in to continue
+                <span style={{ width: 32, height: 32, borderRadius: "50%", background: T.green, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>→</span>
+              </a>
+              <button
+                onClick={() => { setHasExistingAccount(false); setPin(""); }}
+                style={{ width: "100%", background: "none", border: "none", color: T.dim, fontSize: 14, cursor: "pointer", fontFamily: T.sans, padding: "8px 0" }}
+              >
+                Back
+              </button>
+            </>
+          ) : (
+            <>
           <h1 style={{ fontSize: "clamp(24px, 6vw, 32px)", fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 8px" }}>
             Set a 6-digit PIN
           </h1>
@@ -530,6 +564,8 @@ export default function AcademicCounselorStart() {
           >
             Back
           </button>
+            </>
+          )}
         </div>
       </div>
     );
