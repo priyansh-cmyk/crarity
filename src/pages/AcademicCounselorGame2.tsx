@@ -202,7 +202,7 @@ export default function AcademicCounselorGame2() {
 
   const [phase, setPhase] = useState<Phase>("context");
   const [fade, setFade] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(10);
+  const [timeLeft, setTimeLeft] = useState(15);
   const [qIndex, setQIndex] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([null, null, null, null, null]);
   const [isMobile, setIsMobile] = useState(false);
@@ -268,7 +268,7 @@ export default function AcademicCounselorGame2() {
             correct_answers: correctCount,
             total_questions: QUESTIONS.length,
             answers,
-            time_viewed: 10,
+            time_viewed: 15,
             total_score: calculatedScore,
             timestamp: new Date().toISOString(),
           },

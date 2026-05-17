@@ -151,12 +151,6 @@ function InfoLine({ icon, children }: { icon: React.ReactNode; children: React.R
 }
 
 function ContextScreen({ onStart }: { onStart: () => void }) {
-  const [count, setCount] = useState(10);
-  useEffect(() => {
-    if (count <= 0) return;
-    const t = setTimeout(() => setCount((c) => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [count]);
 
   return (
     <div
@@ -237,9 +231,6 @@ function ContextScreen({ onStart }: { onStart: () => void }) {
           </span>
         </button>
 
-        <div style={{ marginTop: 24, fontSize: 13, color: T.dimmer }}>
-          Auto-starts in {count}s
-        </div>
       </div>
     </div>
   );
@@ -260,12 +251,7 @@ export default function AcademicCounselorGame1() {
   const [showTransition, setShowTransition] = useState(false);
   const submittedRef = useRef(false);
 
-  // Auto-start context after 10s
-  useEffect(() => {
-    if (phase !== "context") return;
-    const t = setTimeout(() => setPhase("game"), 10000);
-    return () => clearTimeout(t);
-  }, [phase]);
+  // No auto-start — candidate reads at their own pace and clicks to begin
 
   // Timer
   useEffect(() => {
