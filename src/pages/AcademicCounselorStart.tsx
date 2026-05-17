@@ -185,55 +185,48 @@ export default function AcademicCounselorStart() {
     setPinError("");
     const email = data.email.trim().toLowerCase();
 
-    // Try sign up first
-    const { error: signUpError } = await signUp(email, pin, data.name.trim());
-
-    if (!signUpError) {
-      // New user signed up successfully
-      setOnPinStep(false);
-      setIsReturningUser(false);
-      // If there's a resume session, show the modal now
-      if (resumeSession) {
-        // resumeSession is already set, the modal will show automatically
-        // because we check resumeSession before the main render
-        setPinLoading(false);
-        return;
-      }
+    const proceed = () => {
       setVisible(false);
-      setTimeout(() => setStep((s) => s + 1), 200);
+      setTimeout(() => { setOnPinStep(false); setTimeout(() => { setStep((s) => s + 1); setVisible(true); }, 30); }, 200);
+      setPinLoading(false);
+    };
+
+    // Use edge function to create user without email confirmation
+    const res = await supabase.functions.invoke("create-candidate-user", {
+      body: { email, pin, name: data.name.trim() },
+    });
+
+    if (res.error) {
+      setPinError("Something went wrong. Please try again.");
       setPinLoading(false);
       return;
     }
 
-    // If user already exists, try sign in
-    if (
-      signUpError.message?.toLowerCase().includes("already registered") ||
-      signUpError.message?.toLowerCase().includes("already been registered") ||
-      signUpError.message?.toLowerCase().includes("user already")
-    ) {
+    const result = res.data as { created?: boolean; exists?: boolean; error?: string };
+
+    if (result.error) {
+      setPinError("Something went wrong. Please try again.");
+      setPinLoading(false);
+      return;
+    }
+
+    if (result.created || result.exists) {
+      // Sign in (works for both new and existing users)
       const { error: signInError } = await signInWithEmail(email, pin);
       if (!signInError) {
-        // Returning user signed in successfully
-        setOnPinStep(false);
-        setIsReturningUser(true);
-        if (resumeSession) {
-          setPinLoading(false);
-          return;
-        }
-        setVisible(false);
-        setTimeout(() => setStep((s) => s + 1), 200);
+        setIsReturningUser(!!result.exists);
+        if (resumeSession) { setOnPinStep(false); setPinLoading(false); return; }
+        proceed();
+        return;
+      }
+      // Wrong PIN for existing user
+      if (result.exists) {
+        setPinError("Incorrect PIN. Please try again.");
         setPinLoading(false);
         return;
       }
-      // Wrong PIN
-      setPinError("Incorrect PIN. Please try again.");
+      setPinError("Something went wrong. Please try again.");
       setPinLoading(false);
-      return;
-    }
-
-    // Other error
-    setPinError("Something went wrong. Please try again.");
-    setPinLoading(false);
   };
 
   const goNext = async () => {
@@ -290,8 +283,9 @@ export default function AcademicCounselorStart() {
           if (inserted?.id) setPartialSessionId(inserted.id);
           // Best-effort — don't block the user if insert fails
         }
-        // Show PIN step after email is validated
-        setOnPinStep(true);
+        // Smooth transition into PIN step
+        setVisible(false);
+        setTimeout(() => { setOnPinStep(true); setTimeout(() => setVisible(true), 30); }, 200);
         return;
       }
       setVisible(false);
@@ -419,10 +413,13 @@ export default function AcademicCounselorStart() {
         padding: "32px 24px",
         ...pageStyle,
       }}>
-        <div style={{ width: "100%", maxWidth: 400 }}>
-          <div style={{ marginBottom: 8, fontSize: 13, color: T.dim, letterSpacing: "0.04em", textTransform: "uppercase" as const, fontWeight: 600 }}>
-            Almost there
-          </div>
+        <div style={{
+          width: "100%",
+          maxWidth: 400,
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(8px)",
+          transition: "opacity 200ms ease, transform 200ms ease",
+        }}>
           <h1 style={{ fontSize: "clamp(24px, 6vw, 32px)", fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 8px" }}>
             Set a 6-digit PIN
           </h1>
@@ -503,7 +500,16 @@ export default function AcademicCounselorStart() {
           </button>
 
           <button
-            onClick={() => { setOnPinStep(false); setStep(2); setPin(""); setPinError(""); }}
+            onClick={() => {
+              setVisible(false);
+              setTimeout(() => {
+                setOnPinStep(false);
+                setStep(2);
+                setPin("");
+                setPinError("");
+                setTimeout(() => setVisible(true), 30);
+              }, 200);
+            }}
             style={{
               width: "100%",
               background: "none",
