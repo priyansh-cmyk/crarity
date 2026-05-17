@@ -227,6 +227,12 @@ export default function AcademicCounselorStart() {
       }
       setPinError("Something went wrong. Please try again.");
       setPinLoading(false);
+      return;
+    }
+
+    // Fallback
+    setPinError("Something went wrong. Please try again.");
+    setPinLoading(false);
   };
 
   const goNext = async () => {
