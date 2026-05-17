@@ -388,7 +388,24 @@ export default function AdminCandidates() {
             >
               ✓ Approve Selected
             </button>
-            <button onClick={() => setSelected(new Set())} style={{ background: "transparent", border: "none", color: T.dim, fontSize: 13, cursor: "pointer", marginLeft: 8 }}>Clear</button>
+            <button
+              onClick={async () => {
+                if (!window.confirm(`Delete ${selected.size} candidate${selected.size === 1 ? "" : "s"}? This cannot be undone.`)) return;
+                const ids = Array.from(selected);
+                const { error } = await supabase
+                  .from("assessment_sessions")
+                  .delete()
+                  .in("id", ids);
+                if (error) { toast.error(error.message); return; }
+                setRows((prev) => prev.filter((r) => !ids.includes(r.id)));
+                toast.success(`${ids.length} candidate${ids.length === 1 ? "" : "s"} deleted`);
+                setSelected(new Set());
+              }}
+              style={{ background: "#ef4444", border: "none", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "6px 14px", borderRadius: 99 }}
+            >
+              Delete
+            </button>
+            <button onClick={() => setSelected(new Set())} style={{ background: "transparent", border: "none", color: T.dim, fontSize: 13, cursor: "pointer", marginLeft: 4 }}>Clear</button>
           </div>
         )}
       </div>
