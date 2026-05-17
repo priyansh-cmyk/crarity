@@ -4,6 +4,7 @@ import { ArrowRight, ArrowLeft, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useFadeNavigate } from "@/hooks/useFadeNavigate";
+import { useAuth } from "@/contexts/AuthContext";
 
 const T = {
   white: "#ffffff",
@@ -80,6 +81,12 @@ export default function AcademicCounselorStart() {
   // Holds the ID of the partial session created at the email step
   const [partialSessionId, setPartialSessionId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { signUp, signInWithEmail } = useAuth();
+  const [onPinStep, setOnPinStep] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [pinLoading, setPinLoading] = useState(false);
+  const [isReturningUser, setIsReturningUser] = useState(false);
 
   // Step URL map for resume navigation
   const STEP_URLS: Record<string, string> = {
@@ -104,6 +111,7 @@ export default function AcademicCounselorStart() {
   };
 
   const q = QUESTIONS[step];
+  if (!q) return null; // safety guard - step out of bounds
   const value = data[q.key];
   const isValid = validate(q.key, value);
   const isLastQuestion = step === QUESTIONS.length - 1;
@@ -168,6 +176,66 @@ export default function AcademicCounselorStart() {
     }
   };
 
+  const handlePinSubmit = async () => {
+    if (pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+      setPinError("Please enter a 6-digit PIN.");
+      return;
+    }
+    setPinLoading(true);
+    setPinError("");
+    const email = data.email.trim().toLowerCase();
+
+    // Try sign up first
+    const { error: signUpError } = await signUp(email, pin, data.name.trim());
+
+    if (!signUpError) {
+      // New user signed up successfully
+      setOnPinStep(false);
+      setIsReturningUser(false);
+      // If there's a resume session, show the modal now
+      if (resumeSession) {
+        // resumeSession is already set, the modal will show automatically
+        // because we check resumeSession before the main render
+        setPinLoading(false);
+        return;
+      }
+      setVisible(false);
+      setTimeout(() => setStep((s) => s + 1), 200);
+      setPinLoading(false);
+      return;
+    }
+
+    // If user already exists, try sign in
+    if (
+      signUpError.message?.toLowerCase().includes("already registered") ||
+      signUpError.message?.toLowerCase().includes("already been registered") ||
+      signUpError.message?.toLowerCase().includes("user already")
+    ) {
+      const { error: signInError } = await signInWithEmail(email, pin);
+      if (!signInError) {
+        // Returning user signed in successfully
+        setOnPinStep(false);
+        setIsReturningUser(true);
+        if (resumeSession) {
+          setPinLoading(false);
+          return;
+        }
+        setVisible(false);
+        setTimeout(() => setStep((s) => s + 1), 200);
+        setPinLoading(false);
+        return;
+      }
+      // Wrong PIN
+      setPinError("Incorrect PIN. Please try again.");
+      setPinLoading(false);
+      return;
+    }
+
+    // Other error
+    setPinError("Something went wrong. Please try again.");
+    setPinLoading(false);
+  };
+
   const goNext = async () => {
     if (submitting) return;
 
@@ -222,6 +290,9 @@ export default function AcademicCounselorStart() {
           if (inserted?.id) setPartialSessionId(inserted.id);
           // Best-effort — don't block the user if insert fails
         }
+        // Show PIN step after email is validated
+        setOnPinStep(true);
+        return;
       }
       setVisible(false);
       setTimeout(() => setStep((s) => s + 1), 200);
@@ -329,6 +400,124 @@ export default function AcademicCounselorStart() {
               Start fresh instead
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (onPinStep) {
+    return (
+      <div style={{
+        minHeight: "100vh",
+        background: T.white,
+        fontFamily: T.sans,
+        color: T.text,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "32px 24px",
+        ...pageStyle,
+      }}>
+        <div style={{ width: "100%", maxWidth: 400 }}>
+          <div style={{ marginBottom: 8, fontSize: 13, color: T.dim, letterSpacing: "0.04em", textTransform: "uppercase" as const, fontWeight: 600 }}>
+            Almost there
+          </div>
+          <h1 style={{ fontSize: "clamp(24px, 6vw, 32px)", fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 8px" }}>
+            Set a 6-digit PIN
+          </h1>
+          <p style={{ fontSize: 15, color: T.dim, lineHeight: 1.6, margin: "0 0 32px" }}>
+            This saves your progress and lets you come back to check your results anytime.
+          </p>
+
+          <input
+            ref={inputRef as React.RefObject<HTMLInputElement>}
+            type="number"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="6-digit PIN"
+            value={pin}
+            maxLength={6}
+            onChange={(e) => {
+              const v = e.target.value.replace(/\D/g, "").slice(0, 6);
+              setPin(v);
+              setPinError("");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && pin.length === 6) handlePinSubmit();
+            }}
+            autoFocus
+            style={{
+              width: "100%",
+              padding: "16px 20px",
+              fontSize: 24,
+              fontWeight: 700,
+              letterSpacing: "0.3em",
+              border: `2px solid ${pinError ? "#dc2626" : pin.length === 6 ? T.text : T.border}`,
+              borderRadius: 12,
+              outline: "none",
+              fontFamily: T.sans,
+              color: T.text,
+              boxSizing: "border-box" as const,
+              transition: "border-color 150ms ease",
+              textAlign: "center" as const,
+              marginBottom: 8,
+              MozAppearance: "textfield" as any,
+            }}
+          />
+
+          {pinError && (
+            <div style={{ color: "#dc2626", fontSize: 13, marginBottom: 16 }}>
+              {pinError}
+            </div>
+          )}
+
+          <button
+            onClick={handlePinSubmit}
+            disabled={pin.length !== 6 || pinLoading}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              background: pin.length === 6 && !pinLoading ? T.text : "#e5e5e5",
+              color: pin.length === 6 && !pinLoading ? "#fff" : "#aaa",
+              border: "none",
+              borderRadius: 99,
+              padding: "14px 20px",
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: pin.length === 6 && !pinLoading ? "pointer" : "not-allowed",
+              fontFamily: T.sans,
+              marginTop: 8,
+              transition: "all 150ms ease",
+            }}
+          >
+            {pinLoading ? "Saving..." : "Continue"}
+            <span style={{
+              width: 32, height: 32, borderRadius: "50%",
+              background: pin.length === 6 && !pinLoading ? T.green : "transparent",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0, fontSize: 16,
+            }}>{"→"}</span>
+          </button>
+
+          <button
+            onClick={() => { setOnPinStep(false); setStep(2); setPin(""); setPinError(""); }}
+            style={{
+              width: "100%",
+              background: "none",
+              border: "none",
+              color: T.dim,
+              fontSize: 14,
+              cursor: "pointer",
+              marginTop: 12,
+              fontFamily: T.sans,
+              padding: "8px 0",
+            }}
+          >
+            Back
+          </button>
         </div>
       </div>
     );

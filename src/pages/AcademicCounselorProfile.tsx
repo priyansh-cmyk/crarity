@@ -133,9 +133,7 @@ export default function AcademicCounselorProfile() {
     if (!canSubmit) return;
     if (!sessionId) {
       // Debug mode: skip DB write
-      fadeNavigate(
-        `/assessment/academic-counselor/signup?${roleQs.replace(/^&/, "")}`,
-      );
+      fadeNavigate("/candidate/dashboard");
       return;
     }
     setSubmitting(true);
@@ -149,9 +147,7 @@ export default function AcademicCounselorProfile() {
         })
         .eq("id", sessionId);
       if (error) throw error;
-      fadeNavigate(
-        `/assessment/academic-counselor/signup?session=${sessionId}${roleQs}`,
-      );
+      fadeNavigate("/candidate/dashboard");
     } catch (err) {
       toast({
         title: "Couldn't save your profile",
