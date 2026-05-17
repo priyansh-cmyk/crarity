@@ -154,11 +154,7 @@ export default function AcademicCounselorGame3() {
     }
   }, []);
 
-  useEffect(() => {
-    if (phase !== "context") return;
-    const t = window.setTimeout(() => setPhase("step"), 10000);
-    return () => window.clearTimeout(t);
-  }, [phase]);
+  // No auto-start — candidate reads at their own pace and clicks to begin
 
   useEffect(() => {
     return () => {
